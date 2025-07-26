@@ -201,10 +201,25 @@ impl LoadBalancerService {
                 // Collect backend statistics
                 let backend_stats = backend_pool.get_statistics().await;
 
+                // Convert to the format expected by metrics
+                let backend_status_pairs: Vec<(Backend, BackendStatus)> = backend_stats
+                    .into_iter()
+                    .map(|stats| {
+                        let backend = Backend::new(
+                            stats.backend_id.clone(),
+                            "127.0.0.1".to_string(), // TODO: Get actual address from backend
+                            8080, // TODO: Get actual port from backend
+                            1, // TODO: Get actual weight from backend
+                        );
+                        let status = stats.status.clone();
+                        (backend, status)
+                    })
+                    .collect();
+
                 // Update metrics
                 {
                     let mut metrics_guard = metrics.write().await;
-                    metrics_guard.update_backend_stats(backend_stats);
+                    metrics_guard.update_backend_stats(backend_status_pairs);
                 }
             }
         });

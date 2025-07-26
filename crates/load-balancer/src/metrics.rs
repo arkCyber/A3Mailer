@@ -312,3 +312,212 @@ impl Default for LoadBalancerMetrics {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_metrics_collector_creation() {
+        let collector = MetricsCollector::new();
+        let metrics = collector.get_metrics(0, 0);
+
+        assert_eq!(metrics.total_requests, 0);
+        assert_eq!(metrics.successful_requests, 0);
+        assert_eq!(metrics.failed_requests, 0);
+        assert_eq!(metrics.active_connections, 0);
+        assert_eq!(metrics.request_rate, 0.0);
+        assert_eq!(metrics.error_rate, 0.0);
+    }
+
+    #[test]
+    fn test_request_recording() {
+        let collector = MetricsCollector::new();
+
+        // Record some successful requests
+        collector.record_request_simple(true);
+        collector.record_request_simple(true);
+        collector.record_request_simple(false);
+
+        let metrics = collector.get_metrics(2, 1);
+
+        assert_eq!(metrics.total_requests, 3);
+        assert_eq!(metrics.successful_requests, 2);
+        assert_eq!(metrics.failed_requests, 1);
+        assert_eq!(metrics.backend_count, 2);
+        assert_eq!(metrics.healthy_backend_count, 1);
+        assert!((metrics.error_rate - 33.33).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_connection_tracking() {
+        let collector = MetricsCollector::new();
+
+        collector.increment_connections();
+        collector.increment_connections();
+        collector.increment_connections();
+        collector.decrement_connections();
+
+        let metrics = collector.get_metrics(0, 0);
+        assert_eq!(metrics.active_connections, 2);
+    }
+
+    #[test]
+    fn test_response_time_tracking() {
+        let collector = MetricsCollector::new();
+
+        collector.record_request(true, Some(Duration::from_millis(100)));
+        collector.record_request(true, Some(Duration::from_millis(200)));
+        collector.record_request(false, Some(Duration::from_millis(300)));
+
+        let metrics = collector.get_metrics(0, 0);
+
+        assert_eq!(metrics.total_requests, 3);
+        assert_eq!(metrics.successful_requests, 2);
+        assert_eq!(metrics.failed_requests, 1);
+        assert!((metrics.average_response_time_ms - 200.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_metrics_reset() {
+        let collector = MetricsCollector::new();
+
+        collector.record_request_simple(true);
+        collector.increment_connections();
+
+        let metrics_before = collector.get_metrics(0, 0);
+        assert_eq!(metrics_before.total_requests, 1);
+        assert_eq!(metrics_before.active_connections, 1);
+
+        collector.reset();
+
+        let metrics_after = collector.get_metrics(0, 0);
+        assert_eq!(metrics_after.total_requests, 0);
+        assert_eq!(metrics_after.active_connections, 0);
+    }
+
+    #[test]
+    fn test_load_balancer_metrics_creation() {
+        let metrics = LoadBalancerMetrics::new();
+
+        assert_eq!(metrics.total_requests, 0);
+        assert_eq!(metrics.successful_requests, 0);
+        assert_eq!(metrics.failed_requests, 0);
+        assert_eq!(metrics.average_response_time_ms, 0.0);
+        assert_eq!(metrics.active_connections, 0);
+        assert_eq!(metrics.backend_count, 0);
+        assert_eq!(metrics.healthy_backend_count, 0);
+        assert_eq!(metrics.request_rate, 0.0);
+        assert_eq!(metrics.error_rate, 0.0);
+    }
+
+    #[test]
+    fn test_backend_stats_update() {
+        let mut metrics = LoadBalancerMetrics::new();
+
+        let backend_stats = vec![
+            (
+                crate::Backend::new("backend1".to_string(), "127.0.0.1".to_string(), 8001, 1),
+                crate::BackendStatus::Healthy,
+            ),
+            (
+                crate::Backend::new("backend2".to_string(), "127.0.0.1".to_string(), 8002, 1),
+                crate::BackendStatus::Unhealthy,
+            ),
+            (
+                crate::Backend::new("backend3".to_string(), "127.0.0.1".to_string(), 8003, 1),
+                crate::BackendStatus::Healthy,
+            ),
+        ];
+
+        metrics.update_backend_stats(backend_stats);
+
+        assert_eq!(metrics.backend_count, 3);
+        assert_eq!(metrics.healthy_backend_count, 2);
+    }
+
+    #[test]
+    fn test_success_rate_calculation() {
+        let mut metrics = LoadBalancerMetrics::new();
+        metrics.total_requests = 100;
+        metrics.successful_requests = 85;
+        metrics.failed_requests = 15;
+
+        assert!((metrics.success_rate() - 85.0).abs() < 0.1);
+
+        // Test with zero requests
+        let empty_metrics = LoadBalancerMetrics::new();
+        assert_eq!(empty_metrics.success_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_health_check() {
+        let mut metrics = LoadBalancerMetrics::new();
+
+        // Healthy case: has healthy backends and low error rate
+        metrics.healthy_backend_count = 2;
+        metrics.backend_count = 3;
+        metrics.error_rate = 5.0;
+        assert!(metrics.is_healthy());
+
+        // Unhealthy case: no healthy backends
+        metrics.healthy_backend_count = 0;
+        assert!(!metrics.is_healthy());
+
+        // Unhealthy case: high error rate
+        metrics.healthy_backend_count = 2;
+        metrics.error_rate = 75.0;
+        assert!(!metrics.is_healthy());
+    }
+
+    #[test]
+    fn test_status_summary() {
+        let mut metrics = LoadBalancerMetrics::new();
+        metrics.backend_count = 3;
+        metrics.healthy_backend_count = 2;
+        metrics.total_requests = 100;
+        metrics.successful_requests = 95;
+        metrics.failed_requests = 5;
+        metrics.error_rate = 5.0;
+        metrics.request_rate = 10.5;
+
+        let summary = metrics.status_summary();
+        assert!(summary.contains("Healthy"));
+        assert!(summary.contains("2/3 backends"));
+        assert!(summary.contains("95.0% success rate"));
+        assert!(summary.contains("10.50 req/s"));
+
+        // Test unhealthy status
+        metrics.healthy_backend_count = 0;
+        metrics.error_rate = 60.0;
+        let unhealthy_summary = metrics.status_summary();
+        assert!(unhealthy_summary.contains("Unhealthy"));
+        assert!(unhealthy_summary.contains("60.0% error rate"));
+    }
+
+    #[test]
+    fn test_metrics_serialization() {
+        let metrics = LoadBalancerMetrics {
+            total_requests: 1000,
+            successful_requests: 950,
+            failed_requests: 50,
+            average_response_time_ms: 125.5,
+            active_connections: 25,
+            backend_count: 5,
+            healthy_backend_count: 4,
+            request_rate: 15.2,
+            error_rate: 5.0,
+        };
+
+        // Test serialization to JSON
+        let json = serde_json::to_string(&metrics).expect("Failed to serialize metrics");
+        assert!(json.contains("\"total_requests\":1000"));
+        assert!(json.contains("\"error_rate\":5.0"));
+
+        // Test deserialization from JSON
+        let deserialized: LoadBalancerMetrics = serde_json::from_str(&json)
+            .expect("Failed to deserialize metrics");
+        assert_eq!(deserialized, metrics);
+    }
+}
