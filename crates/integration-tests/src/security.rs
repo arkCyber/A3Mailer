@@ -1,10 +1,10 @@
 /*!
  * Security Testing Module
- * 
+ *
  * This module provides comprehensive security testing capabilities for the
  * Stalwart Mail Server, including vulnerability assessment, penetration testing,
  * and security compliance validation.
- * 
+ *
  * Features:
  * - Authentication security testing
  * - Authorization bypass testing
@@ -13,7 +13,7 @@
  * - Rate limiting and DoS protection
  * - Security compliance validation
  * - Vulnerability scanning
- * 
+ *
  * Author: Stalwart Labs Ltd.
  * Created: 2024-07-26
  */
@@ -131,7 +131,7 @@ pub enum VulnerabilitySeverity {
 }
 
 /// Security compliance framework
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComplianceFramework {
     /// OWASP Top 10
     OWASP,
@@ -173,36 +173,36 @@ impl SecurityTestSuite {
     pub async fn run_all_tests(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Starting comprehensive security tests");
         let start_time = Instant::now();
-        
+
         let mut results = Vec::new();
-        
+
         // Authentication security tests
         results.extend(self.test_authentication_security().await?);
-        
+
         // Authorization tests
         results.extend(self.test_authorization_security().await?);
-        
+
         // Input validation tests
         results.extend(self.test_input_validation().await?);
-        
+
         // Injection attack tests
         results.extend(self.test_injection_attacks().await?);
-        
+
         // Encryption and TLS tests
         results.extend(self.test_encryption_tls().await?);
-        
+
         // Rate limiting tests
         results.extend(self.test_rate_limiting().await?);
-        
+
         // Session management tests
         results.extend(self.test_session_management().await?);
-        
+
         // Data privacy tests
         results.extend(self.test_data_privacy().await?);
-        
+
         let duration = start_time.elapsed();
         info!("Security tests completed in {:?}, {} tests executed", duration, results.len());
-        
+
         Ok(results)
     }
 
@@ -210,19 +210,19 @@ impl SecurityTestSuite {
     pub async fn test_authentication_security(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing authentication security");
         let mut results = Vec::new();
-        
+
         // Test brute force protection
         results.push(self.test_brute_force_protection().await?);
-        
+
         // Test password policy enforcement
         results.push(self.test_password_policy_enforcement().await?);
-        
+
         // Test account lockout mechanisms
         results.push(self.test_account_lockout().await?);
-        
+
         // Test credential stuffing protection
         results.push(self.test_credential_stuffing_protection().await?);
-        
+
         Ok(results)
     }
 
@@ -230,34 +230,34 @@ impl SecurityTestSuite {
     async fn test_brute_force_protection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing brute force protection");
-        
+
         // Create test user
         let user = self.create_test_user("brute_force_target").await?;
-        
+
         // Attempt multiple failed logins
         let mut failed_attempts = 0;
         let max_attempts = 10;
-        
+
         for i in 0..max_attempts {
             let result = self.attempt_login(&user.username, "wrong_password").await;
             if result.is_err() {
                 failed_attempts += 1;
             }
-            
+
             // Small delay between attempts
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        
+
         // Try one more login with correct password
         let final_attempt = self.attempt_login(&user.username, &user.password).await;
-        
+
         let duration = start_time.elapsed();
-        
+
         // If the final attempt fails, brute force protection is working
         let secure = final_attempt.is_err();
-        
+
         let vulnerability_details = if !secure {
             Some(VulnerabilityDetails {
                 severity: VulnerabilitySeverity::High,
@@ -269,7 +269,7 @@ impl SecurityTestSuite {
         } else {
             None
         };
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Brute Force Protection".to_string(),
@@ -291,9 +291,9 @@ impl SecurityTestSuite {
     async fn test_password_policy_enforcement(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing password policy enforcement");
-        
+
         // Test weak passwords
         let weak_passwords = vec![
             "123456",
@@ -302,9 +302,9 @@ impl SecurityTestSuite {
             "test",
             "abc123",
         ];
-        
+
         let mut weak_password_accepted = false;
-        
+
         for weak_password in &weak_passwords {
             let result = self.create_user_with_password("test_user", weak_password).await;
             if result.is_ok() {
@@ -312,10 +312,10 @@ impl SecurityTestSuite {
                 break;
             }
         }
-        
+
         let duration = start_time.elapsed();
         let secure = !weak_password_accepted;
-        
+
         let vulnerability_details = if !secure {
             Some(VulnerabilityDetails {
                 severity: VulnerabilitySeverity::Medium,
@@ -327,7 +327,7 @@ impl SecurityTestSuite {
         } else {
             None
         };
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Password Policy Enforcement".to_string(),
@@ -348,16 +348,16 @@ impl SecurityTestSuite {
     async fn test_account_lockout(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing account lockout mechanisms");
-        
+
         // This is a placeholder for account lockout testing
         // In a real implementation, this would test the server's
         // account lockout behavior after multiple failed attempts
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Account Lockout Mechanisms".to_string(),
@@ -374,16 +374,16 @@ impl SecurityTestSuite {
     async fn test_credential_stuffing_protection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing credential stuffing protection");
-        
+
         // This is a placeholder for credential stuffing testing
         // In a real implementation, this would test protection against
         // automated credential stuffing attacks
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Credential Stuffing Protection".to_string(),
@@ -400,16 +400,16 @@ impl SecurityTestSuite {
     pub async fn test_authorization_security(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing authorization security");
         let mut results = Vec::new();
-        
+
         // Test privilege escalation
         results.push(self.test_privilege_escalation().await?);
-        
+
         // Test horizontal privilege escalation
         results.push(self.test_horizontal_privilege_escalation().await?);
-        
+
         // Test access control bypass
         results.push(self.test_access_control_bypass().await?);
-        
+
         Ok(results)
     }
 
@@ -417,16 +417,16 @@ impl SecurityTestSuite {
     async fn test_privilege_escalation(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing privilege escalation");
-        
+
         // This is a placeholder for privilege escalation testing
         // In a real implementation, this would test if regular users
         // can escalate their privileges to admin level
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Privilege Escalation".to_string(),
@@ -443,16 +443,16 @@ impl SecurityTestSuite {
     async fn test_horizontal_privilege_escalation(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing horizontal privilege escalation");
-        
+
         // This is a placeholder for horizontal privilege escalation testing
         // In a real implementation, this would test if users can access
         // other users' data or resources
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Horizontal Privilege Escalation".to_string(),
@@ -469,16 +469,16 @@ impl SecurityTestSuite {
     async fn test_access_control_bypass(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing access control bypass");
-        
+
         // This is a placeholder for access control bypass testing
         // In a real implementation, this would test various methods
         // to bypass access controls
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Access Control Bypass".to_string(),
@@ -495,16 +495,16 @@ impl SecurityTestSuite {
     pub async fn test_input_validation(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing input validation");
         let mut results = Vec::new();
-        
+
         // Test email header injection
         results.push(self.test_email_header_injection().await?);
-        
+
         // Test malformed input handling
         results.push(self.test_malformed_input_handling().await?);
-        
+
         // Test buffer overflow protection
         results.push(self.test_buffer_overflow_protection().await?);
-        
+
         Ok(results)
     }
 
@@ -512,18 +512,18 @@ impl SecurityTestSuite {
     async fn test_email_header_injection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing email header injection");
-        
+
         // Test malicious headers
         let malicious_headers = vec![
             "Subject: Test\r\nBcc: attacker@evil.com",
             "From: test@example.com\r\nX-Mailer: Evil",
             "To: victim@example.com\r\n\r\nInjected body content",
         ];
-        
+
         let mut injection_successful = false;
-        
+
         for malicious_header in &malicious_headers {
             let result = self.send_email_with_header(malicious_header).await;
             if result.is_ok() {
@@ -531,10 +531,10 @@ impl SecurityTestSuite {
                 break;
             }
         }
-        
+
         let duration = start_time.elapsed();
         let secure = !injection_successful;
-        
+
         let vulnerability_details = if !secure {
             Some(VulnerabilityDetails {
                 severity: VulnerabilitySeverity::High,
@@ -546,7 +546,7 @@ impl SecurityTestSuite {
         } else {
             None
         };
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Email Header Injection".to_string(),
@@ -567,15 +567,15 @@ impl SecurityTestSuite {
     async fn test_malformed_input_handling(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing malformed input handling");
-        
+
         // This is a placeholder for malformed input testing
         // In a real implementation, this would test various malformed inputs
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Malformed Input Handling".to_string(),
@@ -592,16 +592,16 @@ impl SecurityTestSuite {
     async fn test_buffer_overflow_protection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing buffer overflow protection");
-        
+
         // This is a placeholder for buffer overflow testing
         // In a real implementation, this would test protection against
         // buffer overflow attacks
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Buffer Overflow Protection".to_string(),
@@ -618,16 +618,16 @@ impl SecurityTestSuite {
     pub async fn test_injection_attacks(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing injection attacks");
         let mut results = Vec::new();
-        
+
         // Test SQL injection
         results.push(self.test_sql_injection().await?);
-        
+
         // Test command injection
         results.push(self.test_command_injection().await?);
-        
+
         // Test LDAP injection
         results.push(self.test_ldap_injection().await?);
-        
+
         Ok(results)
     }
 
@@ -635,9 +635,9 @@ impl SecurityTestSuite {
     async fn test_sql_injection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing SQL injection");
-        
+
         // Test SQL injection payloads
         let sql_payloads = vec![
             "' OR '1'='1",
@@ -646,9 +646,9 @@ impl SecurityTestSuite {
             "admin'--",
             "' OR 1=1 --",
         ];
-        
+
         let mut injection_successful = false;
-        
+
         for payload in &sql_payloads {
             let result = self.attempt_login(payload, "password").await;
             // If login succeeds with SQL payload, injection might be possible
@@ -657,10 +657,10 @@ impl SecurityTestSuite {
                 break;
             }
         }
-        
+
         let duration = start_time.elapsed();
         let secure = !injection_successful;
-        
+
         let vulnerability_details = if !secure {
             Some(VulnerabilityDetails {
                 severity: VulnerabilitySeverity::Critical,
@@ -672,7 +672,7 @@ impl SecurityTestSuite {
         } else {
             None
         };
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "SQL Injection".to_string(),
@@ -693,15 +693,15 @@ impl SecurityTestSuite {
     async fn test_command_injection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing command injection");
-        
+
         // This is a placeholder for command injection testing
         // In a real implementation, this would test various command injection vectors
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Command Injection".to_string(),
@@ -718,15 +718,15 @@ impl SecurityTestSuite {
     async fn test_ldap_injection(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing LDAP injection");
-        
+
         // This is a placeholder for LDAP injection testing
         // In a real implementation, this would test LDAP injection vectors
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "LDAP Injection".to_string(),
@@ -743,16 +743,16 @@ impl SecurityTestSuite {
     pub async fn test_encryption_tls(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing encryption and TLS");
         let mut results = Vec::new();
-        
+
         // Test TLS configuration
         results.push(self.test_tls_configuration().await?);
-        
+
         // Test certificate validation
         results.push(self.test_certificate_validation().await?);
-        
+
         // Test encryption strength
         results.push(self.test_encryption_strength().await?);
-        
+
         Ok(results)
     }
 
@@ -760,15 +760,15 @@ impl SecurityTestSuite {
     async fn test_tls_configuration(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing TLS configuration");
-        
+
         // This is a placeholder for TLS configuration testing
         // In a real implementation, this would test TLS settings and protocols
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "TLS Configuration".to_string(),
@@ -785,15 +785,15 @@ impl SecurityTestSuite {
     async fn test_certificate_validation(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing certificate validation");
-        
+
         // This is a placeholder for certificate validation testing
         // In a real implementation, this would test certificate chain validation
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Certificate Validation".to_string(),
@@ -810,15 +810,15 @@ impl SecurityTestSuite {
     async fn test_encryption_strength(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing encryption strength");
-        
+
         // This is a placeholder for encryption strength testing
         // In a real implementation, this would test cipher suites and key lengths
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Encryption Strength".to_string(),
@@ -835,13 +835,13 @@ impl SecurityTestSuite {
     pub async fn test_rate_limiting(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing rate limiting");
         let mut results = Vec::new();
-        
+
         // Test API rate limiting
         results.push(self.test_api_rate_limiting().await?);
-        
+
         // Test email sending rate limiting
         results.push(self.test_email_rate_limiting().await?);
-        
+
         Ok(results)
     }
 
@@ -849,15 +849,15 @@ impl SecurityTestSuite {
     async fn test_api_rate_limiting(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing API rate limiting");
-        
+
         // This is a placeholder for API rate limiting testing
         // In a real implementation, this would test rate limits on API endpoints
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "API Rate Limiting".to_string(),
@@ -874,15 +874,15 @@ impl SecurityTestSuite {
     async fn test_email_rate_limiting(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing email rate limiting");
-        
+
         // This is a placeholder for email rate limiting testing
         // In a real implementation, this would test email sending rate limits
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Email Rate Limiting".to_string(),
@@ -899,13 +899,13 @@ impl SecurityTestSuite {
     pub async fn test_session_management(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing session management");
         let mut results = Vec::new();
-        
+
         // Test session timeout
         results.push(self.test_session_timeout().await?);
-        
+
         // Test session fixation
         results.push(self.test_session_fixation().await?);
-        
+
         Ok(results)
     }
 
@@ -913,15 +913,15 @@ impl SecurityTestSuite {
     async fn test_session_timeout(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing session timeout");
-        
+
         // This is a placeholder for session timeout testing
         // In a real implementation, this would test session expiration
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Session Timeout".to_string(),
@@ -938,15 +938,15 @@ impl SecurityTestSuite {
     async fn test_session_fixation(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing session fixation");
-        
+
         // This is a placeholder for session fixation testing
         // In a real implementation, this would test session fixation vulnerabilities
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Session Fixation".to_string(),
@@ -963,16 +963,16 @@ impl SecurityTestSuite {
     pub async fn test_data_privacy(&self) -> Result<Vec<SecurityTestResult>> {
         info!("Testing data privacy");
         let mut results = Vec::new();
-        
+
         // Test data encryption at rest
         results.push(self.test_data_encryption_at_rest().await?);
-        
+
         // Test data encryption in transit
         results.push(self.test_data_encryption_in_transit().await?);
-        
+
         // Test data anonymization
         results.push(self.test_data_anonymization().await?);
-        
+
         Ok(results)
     }
 
@@ -980,15 +980,15 @@ impl SecurityTestSuite {
     async fn test_data_encryption_at_rest(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing data encryption at rest");
-        
+
         // This is a placeholder for data encryption at rest testing
         // In a real implementation, this would test database encryption
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Data Encryption at Rest".to_string(),
@@ -1005,15 +1005,15 @@ impl SecurityTestSuite {
     async fn test_data_encryption_in_transit(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing data encryption in transit");
-        
+
         // This is a placeholder for data encryption in transit testing
         // In a real implementation, this would test TLS/SSL encryption
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Data Encryption in Transit".to_string(),
@@ -1030,15 +1030,15 @@ impl SecurityTestSuite {
     async fn test_data_anonymization(&self) -> Result<SecurityTestResult> {
         let test_id = Uuid::new_v4().to_string();
         let start_time = Instant::now();
-        
+
         debug!("Testing data anonymization");
-        
+
         // This is a placeholder for data anonymization testing
         // In a real implementation, this would test data anonymization features
-        
+
         let duration = start_time.elapsed();
         let secure = true; // Placeholder
-        
+
         Ok(SecurityTestResult {
             test_id,
             name: "Data Anonymization".to_string(),
@@ -1054,7 +1054,7 @@ impl SecurityTestSuite {
     /// Test compliance with security frameworks
     pub async fn test_compliance(&self, framework: ComplianceFramework) -> Result<ComplianceTestResult> {
         info!("Testing compliance with {:?}", framework);
-        
+
         match framework {
             ComplianceFramework::OWASP => self.test_owasp_compliance().await,
             ComplianceFramework::NIST => self.test_nist_compliance().await,
@@ -1068,22 +1068,22 @@ impl SecurityTestSuite {
     /// Test OWASP Top 10 compliance
     async fn test_owasp_compliance(&self) -> Result<ComplianceTestResult> {
         debug!("Testing OWASP Top 10 compliance");
-        
+
         // This is a simplified compliance test
         // In a real implementation, this would test all OWASP Top 10 categories
-        
+
         let passed_requirements = vec![
             "A01:2021 – Broken Access Control".to_string(),
             "A02:2021 – Cryptographic Failures".to_string(),
             "A03:2021 – Injection".to_string(),
         ];
-        
+
         let failed_requirements = vec![
             "A04:2021 – Insecure Design".to_string(),
         ];
-        
+
         let compliance_score = (passed_requirements.len() as f64 / (passed_requirements.len() + failed_requirements.len()) as f64) * 100.0;
-        
+
         Ok(ComplianceTestResult {
             framework: ComplianceFramework::OWASP,
             compliance_score,
@@ -1099,7 +1099,7 @@ impl SecurityTestSuite {
     /// Test NIST compliance
     async fn test_nist_compliance(&self) -> Result<ComplianceTestResult> {
         debug!("Testing NIST compliance");
-        
+
         // Placeholder implementation
         Ok(ComplianceTestResult {
             framework: ComplianceFramework::NIST,
@@ -1113,7 +1113,7 @@ impl SecurityTestSuite {
     /// Test ISO 27001 compliance
     async fn test_iso27001_compliance(&self) -> Result<ComplianceTestResult> {
         debug!("Testing ISO 27001 compliance");
-        
+
         // Placeholder implementation
         Ok(ComplianceTestResult {
             framework: ComplianceFramework::ISO27001,
@@ -1127,7 +1127,7 @@ impl SecurityTestSuite {
     /// Test GDPR compliance
     async fn test_gdpr_compliance(&self) -> Result<ComplianceTestResult> {
         debug!("Testing GDPR compliance");
-        
+
         // Placeholder implementation
         Ok(ComplianceTestResult {
             framework: ComplianceFramework::GDPR,
@@ -1141,7 +1141,7 @@ impl SecurityTestSuite {
     /// Test HIPAA compliance
     async fn test_hipaa_compliance(&self) -> Result<ComplianceTestResult> {
         debug!("Testing HIPAA compliance");
-        
+
         // Placeholder implementation
         Ok(ComplianceTestResult {
             framework: ComplianceFramework::HIPAA,
@@ -1155,7 +1155,7 @@ impl SecurityTestSuite {
     /// Test SOX compliance
     async fn test_sox_compliance(&self) -> Result<ComplianceTestResult> {
         debug!("Testing SOX compliance");
-        
+
         // Placeholder implementation
         Ok(ComplianceTestResult {
             framework: ComplianceFramework::SOX,
@@ -1171,7 +1171,7 @@ impl SecurityTestSuite {
     /// Create a test user
     async fn create_test_user(&self, username: &str) -> Result<TestUser> {
         let user_id = Uuid::new_v4().to_string();
-        
+
         Ok(TestUser {
             id: user_id,
             username: username.to_string(),
@@ -1185,46 +1185,46 @@ impl SecurityTestSuite {
     /// Attempt login with credentials
     async fn attempt_login(&self, username: &str, password: &str) -> Result<()> {
         debug!("Attempting login for user: {}", username);
-        
+
         // Simulate login attempt
         tokio::time::sleep(Duration::from_millis(50)).await;
-        
+
         // For testing purposes, fail if password is "wrong_password"
         if password == "wrong_password" {
             return Err("Invalid credentials".into());
         }
-        
+
         Ok(())
     }
 
     /// Create user with specific password
     async fn create_user_with_password(&self, username: &str, password: &str) -> Result<()> {
         debug!("Creating user {} with password", username);
-        
+
         // Simulate user creation
         tokio::time::sleep(Duration::from_millis(50)).await;
-        
+
         // For testing purposes, reject weak passwords
         let weak_passwords = vec!["123456", "password", "admin", "test", "abc123"];
         if weak_passwords.contains(&password) {
             return Err("Password does not meet policy requirements".into());
         }
-        
+
         Ok(())
     }
 
     /// Send email with specific header
     async fn send_email_with_header(&self, header: &str) -> Result<()> {
         debug!("Sending email with header: {}", header);
-        
+
         // Simulate email sending
         tokio::time::sleep(Duration::from_millis(50)).await;
-        
+
         // For testing purposes, reject headers with injection attempts
         if header.contains("\r\n") || header.contains("\n") {
             return Err("Invalid header format".into());
         }
-        
+
         Ok(())
     }
 }
@@ -1239,7 +1239,7 @@ mod tests {
         let config = TestConfig::default();
         let context = crate::TestContext::new(config);
         let security_suite = SecurityTestSuite::new(context);
-        
+
         // Test that the suite can be created
         assert!(true);
     }
@@ -1249,9 +1249,9 @@ mod tests {
         let config = TestConfig::default();
         let context = crate::TestContext::new(config);
         let security_suite = SecurityTestSuite::new(context);
-        
+
         let result = security_suite.test_brute_force_protection().await.unwrap();
-        
+
         assert_eq!(result.name, "Brute Force Protection");
         assert_eq!(result.vulnerability_type, VulnerabilityType::AuthenticationBypass);
         assert!(result.secure); // Should be secure in our test implementation
@@ -1262,9 +1262,9 @@ mod tests {
         let config = TestConfig::default();
         let context = crate::TestContext::new(config);
         let security_suite = SecurityTestSuite::new(context);
-        
+
         let result = security_suite.test_sql_injection().await.unwrap();
-        
+
         assert_eq!(result.name, "SQL Injection");
         assert_eq!(result.vulnerability_type, VulnerabilityType::SqlInjection);
         assert!(result.secure); // Should be secure in our test implementation
@@ -1275,9 +1275,9 @@ mod tests {
         let config = TestConfig::default();
         let context = crate::TestContext::new(config);
         let security_suite = SecurityTestSuite::new(context);
-        
+
         let result = security_suite.test_owasp_compliance().await.unwrap();
-        
+
         assert_eq!(result.framework, ComplianceFramework::OWASP);
         assert!(result.compliance_score > 0.0);
         assert!(!result.passed_requirements.is_empty());

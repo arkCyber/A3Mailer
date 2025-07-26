@@ -150,7 +150,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     // Initialize test environment
-    TestSetup::init_test_env()?;
+    TestSetup::init_test_env().map_err(|e| -> Box<dyn std::error::Error> {
+        Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    })?;
 
     // Initialize logging
     let log_level = if cli.verbose { "debug" } else { "info" };
@@ -175,7 +177,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize metrics collector
     let metrics_collector = MetricsCollector::new();
-    metrics_collector.start_collection().await?;
+    metrics_collector.start_collection().await.map_err(|e| -> Box<dyn std::error::Error> {
+        Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    })?;
 
     // Create stress test suite
     let stress_suite = StressTestSuite::new(context);
@@ -185,38 +189,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let results = match cli.command {
         Commands::All { max_duration, concurrency } => {
             info!("Running all stress tests with max_duration={}s, concurrency={}", max_duration, concurrency);
-            stress_suite.run_all_tests().await?
+            stress_suite.run_all_tests().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
 
         Commands::ConcurrentUsers { users, duration } => {
             info!("Running concurrent users stress test with users={}, duration={}s", users, duration);
-            stress_suite.test_concurrent_users().await?
+            stress_suite.test_concurrent_users().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
 
         Commands::HighVolume { email_count, batch_size } => {
             info!("Running high volume email stress test with email_count={}, batch_size={}", email_count, batch_size);
-            stress_suite.test_high_volume_email().await?
+            stress_suite.test_high_volume_email().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
 
         Commands::Memory { max_memory_mb, step_size_mb } => {
             info!("Running memory stress test with max_memory={}MB, step_size={}MB", max_memory_mb, step_size_mb);
-            stress_suite.test_memory_stress().await?
+            stress_suite.test_memory_stress().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
 
         Commands::Cpu { workers, duration } => {
             let worker_count = workers.unwrap_or_else(|| num_cpus::get());
             info!("Running CPU stress test with workers={}, duration={}s", worker_count, duration);
-            stress_suite.test_cpu_stress().await?
+            stress_suite.test_cpu_stress().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
 
         Commands::Protocol { protocol, operations } => {
             info!("Running protocol stress test for {:?} with operations={}", protocol, operations);
-            stress_suite.test_protocol_stress().await?
+            stress_suite.test_protocol_stress().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
 
         Commands::Endurance { hours, interval } => {
             info!("Running endurance test for {}h with interval={}s", hours, interval);
-            stress_suite.test_endurance().await?
+            stress_suite.test_endurance().await.map_err(|e| -> Box<dyn std::error::Error> {
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            })?
         },
     };
 
@@ -233,7 +251,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Cleanup
-    TestSetup::cleanup_test_env()?;
+    TestSetup::cleanup_test_env().map_err(|e| -> Box<dyn std::error::Error> {
+        Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    })?;
 
     info!("Stress testing completed successfully");
     Ok(())
@@ -245,7 +265,9 @@ async fn load_configuration(cli: &Cli) -> Result<TestConfig, Box<dyn std::error:
 
     if let Some(config_path) = &cli.config {
         info!("Loading configuration from: {:?}", config_path);
-        config_manager.load_from_file(config_path)?;
+        config_manager.load_from_file(config_path).map_err(|e| -> Box<dyn std::error::Error> {
+        Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    })?;
     } else {
         info!("Using default configuration");
         // Try to load from environment variables
@@ -328,7 +350,7 @@ async fn display_text_results(
 
     if !results.is_empty() {
         let avg_duration = Duration::from_nanos(
-            results.iter().map(|r| r.duration.as_nanos()).sum::<u128>() / results.len() as u128
+            (results.iter().map(|r| r.duration.as_nanos()).sum::<u128>() / results.len() as u128) as u64
         );
         println!("Average Test Duration: {:?}", avg_duration);
 

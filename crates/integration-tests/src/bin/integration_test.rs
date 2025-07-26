@@ -29,6 +29,11 @@ use stalwart_integration_tests::{
     utils::TestSetup,
 };
 
+// Helper function to convert errors
+fn convert_error(e: Box<dyn std::error::Error + Send + Sync>) -> Box<dyn std::error::Error> {
+    Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+}
+
 /// Integration testing command-line interface
 #[derive(Parser)]
 #[command(name = "integration-test")]
@@ -207,7 +212,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     // Initialize test environment
-    TestSetup::init_test_env()?;
+    match TestSetup::init_test_env() {
+        Ok(_) => {},
+        Err(e) => return Err(convert_error(e)),
+    }
 
     // Initialize logging
     let log_level = if cli.verbose { "debug" } else { "info" };
@@ -246,7 +254,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize metrics collector
     let metrics_collector = MetricsCollector::new();
-    metrics_collector.start_collection().await?;
+    match metrics_collector.start_collection().await {
+        Ok(_) => {},
+        Err(e) => return Err(convert_error(e)),
+    }
 
     // Execute tests based on command
     let start_time = Instant::now();
@@ -265,7 +276,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Cleanup
-    TestSetup::cleanup_test_env()?;
+    match TestSetup::cleanup_test_env() {
+        Ok(_) => {},
+        Err(e) => return Err(convert_error(e)),
+    }
 
     // Determine exit code based on test results
     let failed_tests = results.iter().filter(|r| !r.success).count();
@@ -290,15 +304,24 @@ async fn execute_tests(
 
             // Authentication tests
             let auth_suite = AuthTestSuite::new(context.clone());
-            all_results.extend(auth_suite.run_all_tests().await?);
+            match auth_suite.run_all_tests().await {
+                Ok(results) => all_results.extend(results),
+                Err(e) => return Err(convert_error(e)),
+            }
 
             // Email tests
             let email_suite = EmailTestSuite::new(context.clone());
-            all_results.extend(email_suite.run_all_tests().await?);
+            match email_suite.run_all_tests().await {
+                Ok(results) => all_results.extend(results),
+                Err(e) => return Err(convert_error(e)),
+            }
 
             // Scenario tests
             let scenario_suite = ScenarioTestSuite::new(context.clone());
-            let scenario_results = scenario_suite.run_all_scenarios().await?;
+            let scenario_results = match scenario_suite.run_all_scenarios().await {
+                Ok(results) => results,
+                Err(e) => return Err(convert_error(e)),
+            };
             // Convert scenario results to test results
             for scenario_result in scenario_results {
                 all_results.extend(scenario_result.test_results);
@@ -307,13 +330,19 @@ async fn execute_tests(
             // Stress tests (if requested)
             if *include_stress {
                 let stress_suite = StressTestSuite::new(context.clone());
-                all_results.extend(stress_suite.run_all_tests().await?);
+                match stress_suite.run_all_tests().await {
+                    Ok(results) => all_results.extend(results),
+                    Err(e) => return Err(convert_error(e)),
+                }
             }
 
             // Security tests (if requested)
             if *include_security {
                 let security_suite = SecurityTestSuite::new(context.clone());
-                let security_results = security_suite.run_all_tests().await?;
+                let security_results = match security_suite.run_all_tests().await {
+                    Ok(results) => results,
+                    Err(e) => return Err(convert_error(e)),
+                };
                 // Convert security results to test results
                 for security_result in security_results {
                     all_results.push(stalwart_integration_tests::TestResult {
@@ -334,32 +363,59 @@ async fn execute_tests(
         Commands::Auth { method: _ } => {
             info!("Running authentication tests");
             let auth_suite = AuthTestSuite::new(context.clone());
-            auth_suite.run_all_tests().await
+            match auth_suite.run_all_tests().await {
+                Ok(results) => Ok(results),
+                Err(e) => Err(convert_error(e)),
+            }
         },
 
         Commands::Email { protocol: _, include_attachments: _, include_bulk: _ } => {
             info!("Running email communication tests");
             let email_suite = EmailTestSuite::new(context.clone());
-            email_suite.run_all_tests().await
+            match email_suite.run_all_tests().await {
+                Ok(results) => Ok(results),
+                Err(e) => Err(convert_error(e)),
+            }
         },
 
         Commands::Stress { test_type, intensity: _ } => {
             info!("Running stress tests: {:?}", test_type);
             let stress_suite = StressTestSuite::new(context.clone());
             match test_type {
-                StressTestType::ConcurrentUsers => stress_suite.test_concurrent_users().await,
-                StressTestType::HighVolume => stress_suite.test_high_volume_email().await,
-                StressTestType::Memory => stress_suite.test_memory_stress().await,
-                StressTestType::Cpu => stress_suite.test_cpu_stress().await,
-                StressTestType::Protocol => stress_suite.test_protocol_stress().await,
-                StressTestType::Endurance => stress_suite.test_endurance().await,
+                StressTestType::ConcurrentUsers => match stress_suite.test_concurrent_users().await {
+                    Ok(results) => Ok(results),
+                    Err(e) => Err(convert_error(e)),
+                },
+                StressTestType::HighVolume => match stress_suite.test_high_volume_email().await {
+                    Ok(results) => Ok(results),
+                    Err(e) => Err(convert_error(e)),
+                },
+                StressTestType::Memory => match stress_suite.test_memory_stress().await {
+                    Ok(results) => Ok(results),
+                    Err(e) => Err(convert_error(e)),
+                },
+                StressTestType::Cpu => match stress_suite.test_cpu_stress().await {
+                    Ok(results) => Ok(results),
+                    Err(e) => Err(convert_error(e)),
+                },
+                StressTestType::Protocol => match stress_suite.test_protocol_stress().await {
+                    Ok(results) => Ok(results),
+                    Err(e) => Err(convert_error(e)),
+                },
+                StressTestType::Endurance => match stress_suite.test_endurance().await {
+                    Ok(results) => Ok(results),
+                    Err(e) => Err(convert_error(e)),
+                },
             }
         },
 
         Commands::Scenarios { scenario: _, users: _ } => {
             info!("Running scenario tests");
             let scenario_suite = ScenarioTestSuite::new(context.clone());
-            let scenario_results = scenario_suite.run_all_scenarios().await?;
+            let scenario_results = match scenario_suite.run_all_scenarios().await {
+                Ok(results) => results,
+                Err(e) => return Err(convert_error(e)),
+            };
 
             // Convert scenario results to test results
             let mut all_results = Vec::new();
@@ -373,7 +429,10 @@ async fn execute_tests(
         Commands::Security { category: _, include_compliance: _, framework: _ } => {
             info!("Running security tests");
             let security_suite = SecurityTestSuite::new(context.clone());
-            let security_results = security_suite.run_all_tests().await?;
+            let security_results = match security_suite.run_all_tests().await {
+                Ok(results) => results,
+                Err(e) => return Err(convert_error(e)),
+            };
 
             // Convert security results to test results
             let mut all_results = Vec::new();
@@ -402,7 +461,10 @@ async fn load_configuration(cli: &Cli) -> Result<TestConfig, Box<dyn std::error:
 
     if let Some(config_path) = &cli.config {
         info!("Loading configuration from: {:?}", config_path);
-        config_manager.load_from_file(config_path)?;
+        match config_manager.load_from_file(config_path) {
+        Ok(_) => {},
+        Err(e) => return Err(convert_error(e)),
+    }
     } else {
         info!("Using default configuration");
         // Try to load from environment variables
@@ -482,7 +544,10 @@ async fn generate_config_template(
 /// Validate configuration file
 async fn validate_config_file(config_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let mut config_manager = ConfigManager::new();
-    config_manager.load_from_file(config_path)?;
+    match config_manager.load_from_file(config_path) {
+        Ok(_) => {},
+        Err(e) => return Err(convert_error(e)),
+    }
 
     let config = config_manager.get_config(&stalwart_integration_tests::config::Environment::Testing);
     validate_configuration(&config)?;
