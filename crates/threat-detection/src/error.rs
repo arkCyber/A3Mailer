@@ -12,6 +12,10 @@ pub enum ThreatDetectionError {
     #[error("Configuration error: {0}")]
     Configuration(String),
 
+    /// Config error
+    #[error("Config error: {0}")]
+    Config(String),
+
     /// Model loading error
     #[error("Model loading error: {0}")]
     ModelLoading(String),

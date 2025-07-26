@@ -238,4 +238,198 @@ mod tests {
         let events = context.recent_events(10).await;
         assert_eq!(events.len(), 1);
     }
+
+    #[tokio::test]
+    async fn test_threat_detector_creation() {
+        let config = ThreatDetectionConfig::default();
+        let detector = ThreatDetector::new(config).await.unwrap();
+
+        // Test that detector starts successfully
+        detector.start_detection().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_email_context_creation() {
+        use std::collections::HashMap;
+
+        let context = EmailContext {
+            sender: "sender@example.com".to_string(),
+            recipients: vec!["recipient@example.com".to_string()],
+            subject: "Test Subject".to_string(),
+            body: "Test email body".to_string(),
+            headers: HashMap::new(),
+            attachments: vec![],
+            timestamp: chrono::Utc::now(),
+            source_ip: Some("192.168.1.1".to_string()),
+            message_id: "test-message-id".to_string(),
+        };
+
+        assert_eq!(context.sender, "sender@example.com");
+        assert_eq!(context.recipients.len(), 1);
+        assert_eq!(context.subject, "Test Subject");
+        assert!(context.source_ip.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_attachment_info_creation() {
+        let attachment = AttachmentInfo {
+            filename: "test.pdf".to_string(),
+            content_type: "application/pdf".to_string(),
+            size: 1024,
+            hash: "abc123".to_string(),
+        };
+
+        assert_eq!(attachment.filename, "test.pdf");
+        assert_eq!(attachment.content_type, "application/pdf");
+        assert_eq!(attachment.size, 1024);
+        assert_eq!(attachment.hash, "abc123");
+    }
+
+    #[tokio::test]
+    async fn test_detection_stats_default() {
+        let stats = DetectionStats::default();
+
+        assert_eq!(stats.total_emails_analyzed, 0);
+        assert_eq!(stats.threats_detected, 0);
+        assert_eq!(stats.false_positives, 0);
+        assert_eq!(stats.processing_time_ms, 0);
+    }
+
+    #[tokio::test]
+    async fn test_threat_severity_ordering() {
+        assert!(ThreatSeverity::Critical > ThreatSeverity::High);
+        assert!(ThreatSeverity::High > ThreatSeverity::Medium);
+        assert!(ThreatSeverity::Medium > ThreatSeverity::Low);
+    }
+
+    #[tokio::test]
+    async fn test_threat_type_variants() {
+        let types = vec![
+            ThreatType::Malware,
+            ThreatType::Phishing,
+            ThreatType::Spam,
+            ThreatType::Anomaly,
+        ];
+
+        assert_eq!(types.len(), 4);
+    }
+
+    #[tokio::test]
+    async fn test_multiple_threat_events() {
+        use std::collections::HashMap;
+
+        let config = ThreatDetectionConfig::default();
+        let context = ThreatDetectionContext::new(config);
+
+        for i in 0..5 {
+            let event = ThreatEvent {
+                id: format!("test-{}", i),
+                threat_type: ThreatType::Spam,
+                severity: ThreatSeverity::Low,
+                description: format!("Test threat {}", i),
+                source: format!("test{}@example.com", i),
+                target: Some("victim@example.com".to_string()),
+                timestamp: chrono::Utc::now(),
+                metadata: HashMap::new(),
+                confidence: 0.5,
+            };
+
+            context.add_event(event).await;
+        }
+
+        let events = context.recent_events(10).await;
+        assert_eq!(events.len(), 5);
+
+        // Events should be in reverse order (most recent first)
+        for (i, event) in events.iter().enumerate() {
+            let expected_id = format!("test-{}", 4 - i);
+            assert_eq!(event.id, expected_id);
+            assert_eq!(event.threat_type, ThreatType::Spam);
+            assert_eq!(event.severity, ThreatSeverity::Low);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_email_analysis() {
+        use std::collections::HashMap;
+
+        let config = ThreatDetectionConfig::default();
+        let detector = ThreatDetector::new(config).await.unwrap();
+
+        let context = EmailContext {
+            sender: "malicious@example.com".to_string(),
+            recipients: vec!["victim@example.com".to_string()],
+            subject: "Urgent: Click this link now!".to_string(),
+            body: "Click here to claim your prize: http://malicious.com".to_string(),
+            headers: HashMap::new(),
+            attachments: vec![],
+            timestamp: chrono::Utc::now(),
+            source_ip: Some("192.168.1.100".to_string()),
+            message_id: "malicious-message-id".to_string(),
+        };
+
+        let result = detector.analyze_email(&context).await.unwrap();
+        // For now, this returns None as the analysis is not implemented
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_get_detection_stats() {
+        let config = ThreatDetectionConfig::default();
+        let detector = ThreatDetector::new(config).await.unwrap();
+
+        let stats = detector.get_stats().await.unwrap();
+        assert_eq!(stats.total_emails_analyzed, 0);
+        assert_eq!(stats.threats_detected, 0);
+    }
+
+    #[tokio::test]
+    async fn test_status_changes() {
+        let config = ThreatDetectionConfig::default();
+        let context = ThreatDetectionContext::new(config);
+
+        assert_eq!(context.status().await, DetectionStatus::Initializing);
+
+        context.set_status(DetectionStatus::Active).await;
+        assert_eq!(context.status().await, DetectionStatus::Active);
+
+        context.set_status(DetectionStatus::Paused).await;
+        assert_eq!(context.status().await, DetectionStatus::Paused);
+
+        context.set_status(DetectionStatus::Failed).await;
+        assert_eq!(context.status().await, DetectionStatus::Failed);
+    }
+
+    #[tokio::test]
+    async fn test_event_history_limit() {
+        let mut config = ThreatDetectionConfig::default();
+        config.max_events_history = 3; // Set a small limit for testing
+
+        let context = ThreatDetectionContext::new(config);
+
+        // Add more events than the limit
+        for i in 0..5 {
+            let event = ThreatEvent {
+                id: format!("test-{}", i),
+                threat_type: ThreatType::Spam,
+                severity: ThreatSeverity::Low,
+                description: format!("Test threat {}", i),
+                source: format!("test{}@example.com", i),
+                target: None,
+                timestamp: chrono::Utc::now(),
+                metadata: std::collections::HashMap::new(),
+                confidence: 0.5,
+            };
+
+            context.add_event(event).await;
+        }
+
+        let events = context.recent_events(10).await;
+        assert_eq!(events.len(), 3); // Should only keep the last 3 events
+
+        // Should have events 2, 3, 4 (in reverse order)
+        assert_eq!(events[0].id, "test-4");
+        assert_eq!(events[1].id, "test-3");
+        assert_eq!(events[2].id, "test-2");
+    }
 }

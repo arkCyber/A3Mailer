@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
-use chrono::{Utc, Duration};
+use chrono::{Utc, Duration, Timelike};
 
 /// Behavioral analyzer
 ///
@@ -554,5 +554,130 @@ impl BehavioralAnalyzer {
     /// Get behavioral analysis statistics
     pub async fn get_stats(&self) -> BehavioralStats {
         self.stats.read().await.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn create_test_email_context() -> EmailContext {
+        EmailContext {
+            sender: "test@example.com".to_string(),
+            recipients: vec!["recipient@example.com".to_string()],
+            subject: "Test Subject".to_string(),
+            body: "Test email body".to_string(),
+            headers: HashMap::new(),
+            attachments: vec![],
+            timestamp: chrono::Utc::now(),
+            source_ip: Some("192.168.1.1".to_string()),
+            message_id: "test-message-id".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_behavioral_analyzer_creation() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        let stats = analyzer.get_stats().await;
+        assert_eq!(stats.total_profiles, 0);
+        assert_eq!(stats.anomalies_detected, 0);
+    }
+
+    #[tokio::test]
+    async fn test_analyze_email() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        let context = create_test_email_context();
+        let result = analyzer.analyze_email(&context).await.unwrap();
+
+        // For now, this should return None as the analysis is basic
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_profile() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        let context = create_test_email_context();
+        let result = analyzer.update_user_profile(&context).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_multiple_email_analysis() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        // Analyze multiple emails
+        for i in 0..5 {
+            let mut context = create_test_email_context();
+            context.sender = format!("test{}@example.com", i);
+            context.message_id = format!("test-message-{}", i);
+
+            let result = analyzer.analyze_email(&context).await.unwrap();
+            // For now, should return None
+            assert!(result.is_none());
+        }
+
+        let stats = analyzer.get_stats().await;
+        // Check that profiles were created
+        assert!(stats.total_profiles > 0);
+    }
+
+    #[tokio::test]
+    async fn test_suspicious_email_patterns() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        // Create a suspicious email context
+        let mut context = create_test_email_context();
+        context.subject = "URGENT!!! CLICK NOW!!!".to_string();
+        context.body = "You have won $1,000,000! Click here immediately!".to_string();
+        context.sender = "noreply@suspicious-domain.com".to_string();
+
+        let result = analyzer.analyze_email(&context).await.unwrap();
+        // For now, should return None as detection is not fully implemented
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_off_hours_email() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        // Create an email sent at an unusual time (3 AM)
+        let mut context = create_test_email_context();
+        let mut timestamp = chrono::Utc::now();
+        timestamp = timestamp.with_hour(3).unwrap().with_minute(0).unwrap();
+        context.timestamp = timestamp;
+
+        let result = analyzer.analyze_email(&context).await.unwrap();
+
+        // For now, should return None
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_high_volume_sender() {
+        let config = BehavioralAnalysisConfig::default();
+        let analyzer = BehavioralAnalyzer::new(&config).await.unwrap();
+
+        let context = create_test_email_context();
+
+        // Simulate high volume by analyzing many emails from the same sender
+        for _ in 0..10 {
+            let _ = analyzer.analyze_email(&context).await.unwrap();
+        }
+
+        let stats = analyzer.get_stats().await;
+
+        // Should have created profiles
+        assert!(stats.total_profiles > 0);
     }
 }
