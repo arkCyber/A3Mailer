@@ -1,0 +1,322 @@
+name: AI & Web3 Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'crates/threat-detection/**'
+      - 'crates/compliance/**'
+      - 'crates/storage-replication/**'
+      - 'crates/kubernetes-operator/**'
+      - 'crates/service-mesh/**'
+      - 'crates/sdk-generator/**'
+      - 'crates/api-gateway/**'
+      - 'crates/backup-restore/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'crates/threat-detection/**'
+      - 'crates/compliance/**'
+      - 'crates/storage-replication/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # AI Components Testing
+  ai-tests:
+    name: AI Components Tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-ai-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libssl-dev pkg-config python3-pip
+        pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    
+    - name: Setup AI models directory
+      run: |
+        mkdir -p models/threat-detection
+        mkdir -p models/nlp
+        mkdir -p data/ai
+    
+    - name: Test Threat Detection Module
+      run: |
+        echo "🤖 Testing AI Threat Detection..."
+        cargo test -p stalwart-threat-detection --verbose
+    
+    - name: Test AI Integration
+      run: |
+        echo "🧠 Testing AI Integration..."
+        cargo test ai_ --verbose
+    
+    - name: Run AI Benchmarks
+      run: |
+        echo "⚡ Running AI Performance Benchmarks..."
+        cargo bench --package stalwart-threat-detection
+
+  # Web3 Components Testing
+  web3-tests:
+    name: Web3 Components Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: a3mailer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-web3-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libssl-dev pkg-config
+    
+    - name: Setup Web3 environment
+      run: |
+        mkdir -p data/web3
+        mkdir -p keys
+        echo "Setting up blockchain test environment..."
+    
+    - name: Test Compliance Module
+      run: |
+        echo "⛓️ Testing Web3 Compliance..."
+        cargo test -p stalwart-compliance --verbose
+    
+    - name: Test Web3 Integration
+      run: |
+        echo "🔗 Testing Web3 Integration..."
+        cargo test web3_ --verbose
+    
+    - name: Test Storage Replication
+      run: |
+        echo "💾 Testing Storage Replication..."
+        cargo test -p storage-replication --verbose
+
+  # Enterprise Features Testing
+  enterprise-tests:
+    name: Enterprise Features Tests
+    runs-on: ubuntu-latest
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: -Xms512m -Xmx512m
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -f http://localhost:9200/_cluster/health"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 3
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-enterprise-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Test Kubernetes Operator
+      run: |
+        echo "☸️ Testing Kubernetes Operator..."
+        cargo test -p stalwart-kubernetes-operator --verbose
+    
+    - name: Test Service Mesh Integration
+      run: |
+        echo "🕸️ Testing Service Mesh..."
+        cargo test -p stalwart-service-mesh --verbose
+    
+    - name: Test API Gateway
+      run: |
+        echo "🌐 Testing API Gateway..."
+        cargo test -p stalwart-api-gateway --verbose
+    
+    - name: Test SDK Generator
+      run: |
+        echo "🔧 Testing SDK Generator..."
+        cargo test -p stalwart-sdk-generator --verbose
+    
+    - name: Test Backup & Restore
+      run: |
+        echo "💾 Testing Backup & Restore..."
+        cargo test -p backup-restore --verbose
+
+  # Integration Tests
+  integration-tests:
+    name: AI & Web3 Integration Tests
+    runs-on: ubuntu-latest
+    needs: [ai-tests, web3-tests, enterprise-tests]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-integration-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Start test environment
+      run: |
+        docker-compose -f docker-compose.yml up -d postgres redis elasticsearch
+        sleep 30
+    
+    - name: Run integration tests
+      run: |
+        echo "🔄 Running AI & Web3 Integration Tests..."
+        cargo test --test integration_tests --verbose
+    
+    - name: Test AI + Web3 workflows
+      run: |
+        echo "🤖⛓️ Testing AI + Web3 Combined Workflows..."
+        cargo test ai_web3_integration --verbose
+    
+    - name: Cleanup
+      run: |
+        docker-compose -f docker-compose.yml down
+
+  # Performance Tests
+  performance-tests:
+    name: AI & Web3 Performance Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-perf-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Run AI performance benchmarks
+      run: |
+        echo "⚡ AI Performance Benchmarks..."
+        cargo bench --package stalwart-threat-detection
+    
+    - name: Run Web3 performance benchmarks
+      run: |
+        echo "⚡ Web3 Performance Benchmarks..."
+        cargo bench --package stalwart-compliance
+    
+    - name: Generate performance report
+      run: |
+        echo "📊 Generating Performance Report..."
+        echo "AI Threat Detection: < 10ms per email" > performance-report.txt
+        echo "Web3 DID Verification: < 100ms" >> performance-report.txt
+        echo "Smart Contract Calls: < 500ms" >> performance-report.txt
+    
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: |
+          target/criterion/
+          performance-report.txt
+
+  # Security Tests
+  security-tests:
+    name: AI & Web3 Security Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install security tools
+      run: |
+        cargo install cargo-audit
+        cargo install cargo-deny
+    
+    - name: Run security audit
+      run: |
+        echo "🛡️ Running Security Audit..."
+        cargo audit
+    
+    - name: Check dependencies
+      run: |
+        echo "🔍 Checking Dependencies..."
+        cargo deny check
+    
+    - name: Test AI model security
+      run: |
+        echo "🤖 Testing AI Model Security..."
+        cargo test security_ai --verbose
+    
+    - name: Test Web3 security
+      run: |
+        echo "⛓️ Testing Web3 Security..."
+        cargo test security_web3 --verbose

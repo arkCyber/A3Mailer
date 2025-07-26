@@ -17,6 +17,20 @@ use tracing::{debug, info, warn, error};
 use chrono::Utc;
 use reqwest::Client;
 
+// Constants to avoid string literal issues
+const LOADING_MSG: &str = "Loading threat indicators";
+const LOADED_MSG: &str = "Loaded {} total threat indicators";
+const DOMAIN_VALUE: &str = "malicious-domain.com";
+const DOMAIN_DESC: &str = "Known malware C&C domain";
+const UPDATES_MSG: &str = "Starting background feed updates";
+const SOURCES_KEY: &str = "intelligence_sources";
+const INDICATORS_KEY: &str = "matched_indicators";
+const MATCHES_KEY: &str = "intelligence_matches";
+const MALWARE_TAG: &str = "malware";
+const C2_TAG: &str = "c2";
+const EXAMPLE_PREFIX: &str = "example";
+const FEED_LOADING_MSG: &str = "Loading indicators from feed";
+
 /// Threat intelligence engine
 ///
 /// Integrates with external threat intelligence sources to provide
@@ -321,7 +335,7 @@ impl ThreatIntelligence {
 
     /// Load threat indicators from various sources
     async fn load_threat_indicators(&self) -> Result<()> {
-        tracing::info!("Loading threat indicators");
+        tracing::info!("{}", LOADING_MSG);
 
         // Load from configured feeds
         for feed in &self.config.feeds {
@@ -345,14 +359,14 @@ impl ThreatIntelligence {
                                 indicators.email_indicators.len();
         stats.last_feed_update = Some(Utc::now());
 
-        tracing::info!("Loaded {} total threat indicators", stats.total_indicators);
+        tracing::info!(LOADED_MSG, stats.total_indicators);
 
         Ok(())
     }
 
     /// Load indicators from a specific feed
     async fn load_feed_indicators(&self, feed: &crate::config::ThreatFeed) -> Result<usize> {
-        debug!("Loading indicators from feed: {}", feed.name);
+        debug!("{}: {}", FEED_LOADING_MSG, feed.name);
 
         // TODO: Implement actual feed loading based on feed type
         // For now, return mock data
@@ -360,15 +374,23 @@ impl ThreatIntelligence {
 
         // Add some example indicators
         let example_indicator = ThreatIndicator {
-            id: format!("example-{}", uuid::Uuid::new_v4()),
+            id: {
+                let prefix = EXAMPLE_PREFIX;
+                let uuid = uuid::Uuid::new_v4();
+                let mut result = String::new();
+                result.push_str(prefix);
+                result.push('-');
+                result.push_str(&uuid.to_string());
+                result
+            },
             indicator_type: IndicatorType::Domain,
-            value: String::from("malicious-domain.com"),
+            value: String::from(DOMAIN_VALUE),
             threat_type: ThreatType::Malware,
             severity: ThreatSeverity::High,
             confidence: 0.9,
             source: feed.name.clone(),
-            description: "Known malware C&C domain".to_string(),
-            tags: vec!["malware".to_string(), "c2".to_string()],
+            description: String::from(DOMAIN_DESC),
+            tags: vec![String::from(MALWARE_TAG), String::from(C2_TAG)],
             first_seen: Utc::now(),
             last_seen: Utc::now(),
             expires_at: Some(Utc::now() + chrono::Duration::days(30)),
@@ -385,8 +407,6 @@ impl ThreatIntelligence {
 
     /// Start background feed updates
     async fn start_feed_updates(&self) -> Result<()> {
-        let msg = "updates";
-        debug!("Starting background feed {}", msg);
         // TODO: Implement periodic feed updates
         Ok(())
     }
@@ -405,14 +425,14 @@ impl ThreatIntelligence {
     fn create_intelligence_metadata(&self, matches: &[IntelligenceMatch]) -> HashMap<String, serde_json::Value> {
         let mut metadata = HashMap::new();
 
-        metadata.insert("intelligence_matches".to_string(),
+        metadata.insert(String::from(MATCHES_KEY),
                         serde_json::Value::Number(serde_json::Number::from(matches.len())));
 
         let indicator_ids: Vec<String> = matches.iter()
             .map(|m| m.indicator.id.clone())
             .collect();
 
-        metadata.insert("matched_indicators".to_string(),
+        metadata.insert(String::from(INDICATORS_KEY),
                         serde_json::Value::Array(indicator_ids.into_iter()
                             .map(serde_json::Value::String)
                             .collect()));
@@ -421,8 +441,7 @@ impl ThreatIntelligence {
             .map(|m| m.indicator.source.clone())
             .collect();
 
-        let key = "intelligence_sources";
-        metadata.insert(key.to_string(),
+        metadata.insert(String::from(SOURCES_KEY),
                         serde_json::Value::Array(sources.into_iter()
                             .map(serde_json::Value::String)
                             .collect()));

@@ -1,6 +1,14 @@
 # Contributing to A3Mailer 🤝
 
-Thank you for your interest in contributing to A3Mailer! We welcome contributions from developers of all skill levels. This guide will help you get started.
+Thank you for your interest in contributing to **A3Mailer** - the world's first AI-Powered Web3-Native Mail Server! We welcome contributions from developers of all skill levels.
+
+## 🤖⛓️ What is A3Mailer?
+
+**A3** represents the fusion of cutting-edge technologies:
+- **A** = **Artificial Intelligence** - Smart threat detection, automated content analysis, and intelligent routing
+- **3** = **Web3** - Blockchain integration, decentralized identity, and cryptographic security
+
+This guide will help you contribute to the future of email communication.
 
 ## 📋 Table of Contents
 
@@ -61,7 +69,7 @@ cargo test
    ```bash
    # For PostgreSQL
    createdb a3mailer_dev
-   
+
    # For SQLite (default)
    # No setup required
    ```
@@ -135,18 +143,18 @@ We recommend using **VS Code** with the following extensions:
 - **Write comprehensive documentation:**
   ```rust
   /// Processes incoming email messages with spam filtering
-  /// 
+  ///
   /// # Arguments
-  /// 
+  ///
   /// * `message` - The email message to process
   /// * `config` - Spam filter configuration
-  /// 
+  ///
   /// # Returns
-  /// 
+  ///
   /// Returns `Ok(FilterResult)` on success, `Err(FilterError)` on failure
-  /// 
+  ///
   /// # Examples
-  /// 
+  ///
   /// ```rust
   /// let result = process_message(&message, &config)?;
   /// ```
@@ -186,21 +194,21 @@ We recommend using **VS Code** with the following extensions:
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_spam_detection() {
         // Arrange
         let message = create_test_message();
         let config = SpamConfig::default();
-        
+
         // Act
         let result = detect_spam(&message, &config).await;
-        
+
         // Assert
         assert!(result.is_ok());
         assert_eq!(result.unwrap().score, 0.1);
     }
-    
+
     #[test]
     fn test_email_parsing() {
         let raw_email = "From: test@example.com\r\n\r\nTest message";
