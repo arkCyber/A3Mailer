@@ -1,0 +1,96 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/main",
+    "crates/http",
+    "crates/http-proto",
+    "crates/jmap",
+    "crates/jmap-proto",
+    "crates/email",
+    "crates/imap",
+    "crates/imap-proto",
+    "crates/smtp",
+    "crates/managesieve",
+    "crates/pop3",
+    "crates/dav-proto",
+    "crates/dav",
+    "crates/groupware",
+    "crates/spam-filter",
+    "crates/nlp",
+    "crates/store",
+    "crates/directory",
+    "crates/services",
+    "crates/utils",
+    "crates/common",
+    "crates/trc",
+    "crates/migration",
+    "crates/cli",
+    "tests",
+    # High-availability and enterprise features
+    "crates/backup-restore",
+    "crates/load-balancer",
+    "crates/storage-replication",
+    # Security and compliance
+    "crates/threat-detection",
+    "crates/compliance",
+    "crates/alerting",
+    # Cloud-native and clustering
+    "crates/cluster-management",
+    "crates/kubernetes-operator",
+    "crates/service-mesh",
+    # Developer ecosystem
+    "crates/plugin-system",
+    "crates/sdk-generator",
+    "crates/api-gateway",
+]
+
+[profile.dev]
+opt-level = 0
+debug = 1
+#codegen-units = 4
+lto = false
+incremental = true
+panic = 'unwind'
+debug-assertions = true
+overflow-checks = false
+rpath = false
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = true
+incremental = false
+panic = 'unwind'
+debug-assertions = false
+overflow-checks = false
+rpath = false
+strip = true
+
+[profile.test]
+opt-level = 0
+debug = 1
+#codegen-units = 16
+lto = false
+incremental = true
+debug-assertions = true
+overflow-checks = true
+rpath = false
+
+[profile.bench]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = true
+incremental = false
+debug-assertions = false
+overflow-checks = false
+rpath = false
+
+[workspace.package]
+version = "0.13.0"
+edition = "2021"
+license = "AGPL-3.0-only OR LicenseRef-SEL"
+authors = ["A3Mailer Team <team@a3mailer.com>"]
+repository = "https://github.com/a3mailer/a3mailer"
+homepage = "https://a3mailer.com"

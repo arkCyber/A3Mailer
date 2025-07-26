@@ -1,0 +1,87 @@
+# Stalwart POP3 Server Configuration
+# This is an example configuration file showing all available options
+
+[server]
+# Server greeting message sent to clients
+greeting = "Stalwart POP3 Server"
+
+# Maximum message size in bytes (100MB)
+max_message_size = 104857600
+
+# Session timeout for authenticated users (30 minutes)
+session_timeout = "30m"
+
+# Session timeout for unauthenticated users (5 minutes)
+unauth_timeout = "5m"
+
+# Enable APOP authentication (recommended)
+enable_apop = true
+
+# Enable UTF8 support for international characters
+enable_utf8 = true
+
+# Enable STARTTLS for secure connections
+enable_stls = true
+
+[security]
+# Maximum authentication attempts per IP before blocking
+max_auth_attempts = 3
+
+# Time window for authentication attempts (15 minutes)
+auth_window = "15m"
+
+# Maximum concurrent connections per IP address
+max_connections_per_ip = 5
+
+# Maximum commands per minute per session
+max_commands_per_minute = 30
+
+# Minimum delay between commands (anti-spam)
+min_command_delay = "50ms"
+
+# Enable detailed security logging
+enable_security_logging = true
+
+# Threshold for suspicious activity detection
+suspicious_threshold = 5
+
+[protocol]
+# Maximum line length for protocol commands
+max_line_length = 4096
+
+# Maximum number of arguments per command
+max_arguments = 5
+
+# Enable command pipelining for better performance
+enable_pipelining = true
+
+# Maximum number of pipelined commands
+max_pipelined_commands = 50
+
+# Enable TOP command (retrieve message headers + N lines)
+enable_top = true
+
+# Enable UIDL command (unique message identifiers)
+enable_uidl = true
+
+# Maximum lines returned by TOP command
+max_top_lines = 500
+
+[performance]
+# Maximum concurrent sessions server-wide
+max_concurrent_sessions = 500
+
+# Connection pool size for database connections
+connection_pool_size = 50
+
+# I/O buffer size for network operations
+io_buffer_size = 4096
+
+# Enable response caching for better performance
+enable_response_caching = true
+
+# Cache time-to-live (10 minutes)
+cache_ttl = "10m"
+
+# Maximum number of cached responses
+max_cached_responses = 500

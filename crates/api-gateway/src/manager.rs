@@ -1,0 +1,3 @@
+//! manager module
+
+/// manager placeholder

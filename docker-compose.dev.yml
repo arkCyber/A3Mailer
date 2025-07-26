@@ -1,0 +1,54 @@
+# A3Mailer Development Override
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  # Development override for A3Mailer
+  a3mailer:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    volumes:
+      # Mount source code for hot reloading
+      - .:/workspace:cached
+      - target_cache:/workspace/target
+      - cargo_cache:/usr/local/cargo/registry
+    environment:
+      - RUST_LOG=debug,a3mailer=trace
+      - RUST_BACKTRACE=full
+      - CARGO_INCREMENTAL=1
+      - CARGO_TARGET_DIR=/workspace/target
+    command: ["cargo", "watch", "-x", "run", "--", "--config", "/workspace/resources/config/development.toml"]
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+
+  # Development database with exposed ports and debug settings
+  postgres:
+    environment:
+      POSTGRES_DB: a3mailer_dev
+      POSTGRES_USER: a3mailer_dev
+      POSTGRES_PASSWORD: dev_password_123
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_destination=stderr
+      -c log_min_messages=info
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+
+  # Development Redis with debug logging
+  redis:
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass dev_redis_123
+      --loglevel debug
+      --logfile ""
+
+volumes:
+  target_cache:
+    driver: local
+  cargo_cache:
+    driver: local

@@ -1,0 +1,75 @@
+[package]
+name = "stalwart-service-mesh"
+version = "0.1.0"
+edition = "2021"
+description = "Service mesh integration for Stalwart Mail Server"
+license = "AGPL-3.0-only OR LicenseRef-SEL"
+authors = ["Stalwart Labs Ltd. <hello@stalw.art>"]
+repository = "https://github.com/stalwartlabs/mail-server"
+homepage = "https://stalw.art"
+keywords = ["service-mesh", "istio", "linkerd", "envoy", "microservices"]
+categories = ["network-programming", "microservices"]
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+tracing = "0.1"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async and networking
+futures = "0.3"
+async-trait = "0.1"
+hyper = { version = "0.14", features = ["full"] }
+tower = "0.4"
+tower-service = "0.3"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# gRPC for service mesh APIs
+tonic = "0.10"
+prost = "0.12"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Metrics
+prometheus = "0.13"
+
+# Configuration
+config = "0.13"
+
+# Internal dependencies
+common = { path = "../common" }
+utils = { path = "../utils" }
+trc = { path = "../trc" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+criterion = "0.5"
+
+[build-dependencies]
+tonic-build = "0.10"
+
+# [[bench]]
+# name = "service_mesh_bench"
+# harness = false
+
+[features]
+default = ["istio", "envoy-proxy", "traffic-management"]
+istio = []
+linkerd = []
+consul-connect = []
+envoy-proxy = []
+traffic-management = []
+security-policies = []
+observability = []
+circuit-breaker = []

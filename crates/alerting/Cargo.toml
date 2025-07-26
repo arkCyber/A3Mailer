@@ -1,0 +1,84 @@
+[package]
+name = "alerting"
+description = "Intelligent alerting system for Stalwart Mail Server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords = ["alerting", "monitoring", "notifications", "mail-server"]
+categories = ["network-programming", "web-programming"]
+
+[dependencies]
+# Core dependencies
+common = { path = "../common" }
+utils = { path = "../utils" }
+trc = { path = "../trc" }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# HTTP client for webhooks
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Email notifications
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"], optional = true }
+
+# Messaging platforms
+slack-morphism = { version = "2.0", optional = true }
+telegram-bot-raw = { version = "0.8", optional = true }
+
+# SMS providers
+twilio = { version = "1.0", optional = true }
+
+# Configuration and serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Template engine
+handlebars = { version = "5.0", optional = true }
+tera = { version = "1.0", optional = true }
+
+# Time and scheduling
+chrono = { version = "0.4", features = ["serde"] }
+cron = "0.12"
+
+# Metrics and monitoring
+metrics = "0.22"
+
+# Logging
+tracing = "0.1"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Concurrency and data structures
+dashmap = "5.0"
+parking_lot = "0.12"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Encryption for sensitive data
+aes-gcm = { version = "0.10", optional = true }
+base64 = "0.22"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio-test = "0.4"
+wiremock = "0.6"
+
+[features]
+default = ["email", "webhook", "templates"]
+email = ["lettre"]
+webhook = []
+slack = ["slack-morphism"]
+telegram = ["telegram-bot-raw"]
+sms = ["twilio"]
+templates = ["handlebars", "tera"]
+encryption = ["aes-gcm"]

@@ -1,0 +1,75 @@
+[package]
+name = "backup-restore"
+description = "Backup and disaster recovery system for Stalwart Mail Server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords = ["backup", "restore", "disaster-recovery", "mail-server"]
+categories = ["database", "filesystem", "compression"]
+
+[dependencies]
+# Core dependencies
+common = { path = "../common" }
+store = { path = "../store" }
+utils = { path = "../utils" }
+trc = { path = "../trc" }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization and compression
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+flate2 = "1.0"
+zstd = "0.13"
+lz4_flex = "0.11"
+
+# Cloud storage
+aws-sdk-s3 = { version = "1.0", optional = true }
+azure_storage = { version = "0.19", optional = true }
+google-cloud-storage = { version = "0.15", optional = true }
+
+# Encryption
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+
+# File system and I/O
+walkdir = "2.0"
+tempfile = "3.0"
+sha2 = "0.10"
+blake3 = "1.0"
+gethostname = "0.4"
+
+# Time and scheduling
+chrono = { version = "0.4", features = ["serde"] }
+cron = "0.12"
+
+# Logging and metrics
+tracing = "0.1"
+metrics = "0.22"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.0"
+tokio-test = "0.4"
+
+[features]
+default = ["local-storage"]
+local-storage = []
+aws-s3 = ["dep:aws-sdk-s3"]
+azure-blob = ["dep:azure_storage"]
+google-cloud = ["dep:google-cloud-storage"]
+encryption = []
+compression = []

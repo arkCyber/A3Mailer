@@ -1,0 +1,119 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: a3mailer_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Install test dependencies
+        run: |
+          # Install GLAuth for LDAP testing
+          curl -LO https://github.com/glauth/glauth/releases/download/v2.2.0/glauth-linux-amd64
+          chmod a+rx glauth-linux-amd64
+          nohup ./glauth-linux-amd64 -c tests/resources/ldap.cfg &
+          
+          # Install MinIO for S3 testing
+          curl -Lo minio.deb https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20230629051228.0.0_amd64.deb
+          sudo dpkg -i minio.deb
+          mkdir ~/minio
+          nohup minio server ~/minio --console-address :9090 &
+          
+          # Setup MinIO client
+          curl -LO https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod a+rx mc
+          ./mc alias set myminio http://localhost:9000 minioadmin minioadmin
+          ./mc mb tmp
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Wait for services
+        run: |
+          timeout 30 bash -c 'until nc -z localhost 5432; do sleep 1; done'
+          timeout 30 bash -c 'until nc -z localhost 6379; do sleep 1; done'
+          sleep 5
+
+      - name: Generate coverage report
+        run: |
+          cargo tarpaulin \
+            --workspace \
+            --timeout 300 \
+            --out Xml \
+            --output-dir coverage \
+            --exclude-files "target/*" \
+            --exclude-files "tests/*" \
+            --exclude-files "*/tests/*" \
+            --exclude-files "*/benches/*"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage/cobertura.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage/lcov.info
+        continue-on-error: true
+
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30

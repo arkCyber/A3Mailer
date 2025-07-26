@@ -1,0 +1,49 @@
+[package]
+name = "storage-replication"
+description = "Storage replication and synchronization for Stalwart Mail Server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords = ["replication", "storage", "sync", "backup", "clustering"]
+categories = ["database", "network-programming"]
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async and networking
+futures = "0.3"
+async-trait = "0.1"
+
+# Cryptography for secure replication
+ring = "0.17"
+base64 = "0.22"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Internal dependencies
+common = { path = "../common" }
+store = { path = "../store" }
+utils = { path = "../utils" }
+trc = { path = "../trc" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+criterion = "0.5"
+
+[features]
+default = ["async-replication", "conflict-resolution"]
+async-replication = []
+conflict-resolution = []
+metrics = []
+compression = []

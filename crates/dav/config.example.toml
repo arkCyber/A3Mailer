@@ -1,0 +1,232 @@
+# A3Mailer DAV Server Configuration
+# High-Performance WebDAV/CalDAV/CardDAV Server Configuration
+
+[server]
+# Server bind address
+bind_address = "0.0.0.0"
+# Server port
+port = 8080
+# Server name
+server_name = "A3Mailer DAV Server"
+# Maximum request size (100MB)
+max_request_size = 104857600
+# Request timeout (5 minutes)
+request_timeout = "300s"
+# Enable TLS
+enable_tls = false
+# TLS certificate path (required if enable_tls = true)
+# tls_cert_path = "/path/to/cert.pem"
+# TLS private key path (required if enable_tls = true)
+# tls_key_path = "/path/to/key.pem"
+# Worker threads (defaults to CPU cores)
+# worker_threads = 8
+# Enable graceful shutdown
+enable_graceful_shutdown = true
+# Graceful shutdown timeout
+graceful_shutdown_timeout = "30s"
+
+[async_pool]
+# Maximum concurrent requests
+max_concurrent_requests = 10000
+# Maximum requests per IP
+max_requests_per_ip = 100
+# Worker count (CPU cores * 4)
+worker_count = 16
+# Request timeout
+request_timeout = "30s"
+# Maximum queue size
+max_queue_size = 50000
+# Enable request batching
+enable_batching = true
+# Batch size
+batch_size = 10
+
+[cache]
+# Enable L1 cache
+enable_l1 = true
+# L1 cache size (entries)
+l1_size = 10000
+# L1 cache TTL
+l1_ttl = "300s"
+# Enable L2 cache
+enable_l2 = true
+# L2 cache size (entries)
+l2_size = 100000
+# L2 cache TTL
+l2_ttl = "3600s"
+# Enable L3 cache
+enable_l3 = false
+# L3 cache type (redis, memcached, disk)
+l3_type = "redis"
+# L3 cache connection string
+l3_connection = "redis://localhost:6379"
+# Enable compression
+enable_compression = true
+# Compression threshold (bytes)
+compression_threshold = 1024
+# Enable cache statistics
+enable_stats = true
+
+[data_access]
+# Maximum database connections
+max_connections = 100
+# Minimum database connections
+min_connections = 10
+# Connection timeout
+connection_timeout = "30s"
+# Query timeout
+query_timeout = "60s"
+# Enable query caching
+enable_query_cache = true
+# Maximum cached queries
+max_cached_queries = 1000
+# Query cache TTL
+query_cache_ttl = "300s"
+# Enable prepared statements
+enable_prepared_statements = true
+# Transaction timeout
+transaction_timeout = "300s"
+# Enable connection validation
+enable_connection_validation = true
+
+[monitoring]
+# Enable performance monitoring
+enable_performance = true
+# Enable security monitoring
+enable_security = true
+# Enable cache monitoring
+enable_cache = true
+# Enable database monitoring
+enable_database = true
+# Metrics collection interval
+collection_interval = "60s"
+# Enable metrics export
+enable_export = false
+# Metrics export endpoint
+export_endpoint = "http://localhost:9090/metrics"
+# Enable alerting
+enable_alerting = false
+# Alert thresholds
+[monitoring.thresholds]
+response_time_ms = 1000
+error_rate_percent = 5.0
+memory_usage_percent = 80.0
+cpu_usage_percent = 80.0
+
+[performance]
+# Enable performance optimization
+enable_optimization = true
+# Enable request preprocessing
+enable_preprocessing = true
+# Enable response compression
+enable_compression = true
+# Compression level (1-9)
+compression_level = 6
+# Enable connection pooling
+enable_connection_pooling = true
+# Enable keep-alive
+enable_keep_alive = true
+# Keep-alive timeout
+keep_alive_timeout = "60s"
+# Enable request pipelining
+enable_pipelining = false
+# Maximum pipeline depth
+max_pipeline_depth = 10
+
+[security]
+# Enable rate limiting
+enable_rate_limiting = true
+# Global rate limit (requests per second)
+global_rate_limit = 1000
+# IP rate limit (requests per second)
+ip_rate_limit = 10
+# Rate limit window
+rate_limit_window = "60s"
+# Enable IP blocking
+enable_ip_blocking = true
+# Block duration
+block_duration = "3600s"
+# Maximum failed attempts
+max_failed_attempts = 5
+# Enable request validation
+enable_request_validation = true
+# Maximum path length
+max_path_length = 1024
+# Maximum header size
+max_header_size = 8192
+# Enable CORS
+enable_cors = true
+# CORS allowed origins
+cors_allowed_origins = ["*"]
+# CORS allowed methods
+cors_allowed_methods = ["GET", "POST", "PUT", "DELETE", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"]
+
+[router]
+# Enable route caching
+enable_route_cache = true
+# Maximum cached routes
+max_cached_routes = 10000
+# Route cache TTL
+route_cache_ttl = "300s"
+# Enable request preprocessing
+enable_preprocessing = true
+# Enable performance monitoring
+enable_monitoring = true
+# Request timeout
+request_timeout = "30s"
+# Enable request batching
+enable_batching = true
+# Batch size
+batch_size = 10
+
+[logging]
+# Log level (trace, debug, info, warn, error)
+level = "info"
+# Log format (json, text, compact)
+format = "json"
+# Log output (stdout, stderr, file, syslog)
+output = "stdout"
+# Enable structured logging
+structured = true
+# Log file path (required if output = "file")
+# file_path = "/var/log/stalwart-dav.log"
+# Enable request logging
+enable_request_logging = true
+# Enable performance logging
+enable_performance_logging = true
+# Enable security logging
+enable_security_logging = true
+
+[logging.rotation]
+# Enable log rotation
+enabled = true
+# Maximum file size before rotation (100MB)
+max_size = 104857600
+# Maximum number of rotated files to keep
+max_files = 10
+# Rotation interval (24 hours)
+interval = "86400s"
+
+[features]
+# Enable WebDAV support
+enable_webdav = true
+# Enable CalDAV support
+enable_caldav = true
+# Enable CardDAV support
+enable_carddav = true
+# Enable principal support
+enable_principals = true
+# Enable scheduling support
+enable_scheduling = true
+# Enable ACL support
+enable_acl = true
+# Enable locking support
+enable_locking = true
+# Enable versioning support (experimental)
+enable_versioning = false
+# Enable search support
+enable_search = true
+# Enable sync collection support
+enable_sync_collection = true
+# Enable experimental features
+enable_experimental = false

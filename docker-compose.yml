@@ -1,0 +1,170 @@
+# A3Mailer Development Environment
+# This docker-compose file sets up a complete development environment for A3Mailer
+
+version: '3.8'
+
+services:
+  # A3Mailer main service
+  a3mailer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: a3mailer-dev
+    ports:
+      # SMTP ports
+      - "25:25"     # SMTP
+      - "587:587"   # SMTP Submission
+      - "465:465"   # SMTP over SSL
+      # IMAP ports
+      - "143:143"   # IMAP
+      - "993:993"   # IMAP over SSL
+      # POP3 ports
+      - "110:110"   # POP3
+      - "995:995"   # POP3 over SSL
+      # ManageSieve
+      - "4190:4190" # ManageSieve
+      # HTTP/HTTPS
+      - "8080:8080" # HTTP Admin Interface
+      - "443:443"   # HTTPS
+    volumes:
+      - a3mailer_data:/opt/a3mailer
+      - ./resources/config:/opt/a3mailer/etc:ro
+      - ./resources/html-templates:/opt/a3mailer/templates:ro
+    environment:
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=1
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: a3mailer-postgres
+    environment:
+      POSTGRES_DB: a3mailer
+      POSTGRES_USER: a3mailer
+      POSTGRES_PASSWORD: a3mailer_dev_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./resources/docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: a3mailer-redis
+    command: redis-server --appendonly yes --requirepass a3mailer_redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+
+  # Elasticsearch for full-text search (optional)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: a3mailer-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+    profiles:
+      - full
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: a3mailer-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./resources/docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: a3mailer-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./resources/docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./resources/docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: a3mailer-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector HTTP
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    networks:
+      - a3mailer-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  a3mailer_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  a3mailer-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

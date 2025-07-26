@@ -1,0 +1,103 @@
+/*
+ * SPDX-FileCopyrightText: 2024 A3Mailer Project
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEL
+ */
+
+use common::listener::SessionStream;
+
+use mail_auth::{AuthenticationResults, SpfOutput, report::AuthFailureType};
+use trc::OutgoingReportEvent;
+use utils::config::Rate;
+
+use crate::{core::Session, reporting::SmtpReporting};
+
+impl<T: SessionStream> Session<T> {
+    pub async fn send_spf_report(
+        &self,
+        rcpt: &str,
+        rate: &Rate,
+        rejected: bool,
+        output: &SpfOutput,
+    ) {
+        // Throttle recipient
+        if !self.throttle_rcpt(rcpt, rate, "spf").await {
+            trc::event!(
+                OutgoingReport(OutgoingReportEvent::SpfRateLimited),
+                SpanId = self.data.session_id,
+                To = rcpt.to_string(),
+                Limit = vec![
+                    trc::Value::from(rate.requests),
+                    trc::Value::from(rate.period)
+                ],
+            );
+
+            return;
+        }
+
+        // Generate report
+        let config = &self.server.core.smtp.report.spf;
+        let from_addr = self
+            .server
+            .eval_if(&config.address, self, self.data.session_id)
+            .await
+            .unwrap_or_else(|| "MAILER-DAEMON@localhost".to_string());
+        let mut report = Vec::with_capacity(128);
+        self.new_auth_failure(AuthFailureType::Spf, rejected)
+            .with_authentication_results(
+                if let Some(mail_from) = &self.data.mail_from {
+                    AuthenticationResults::new(&self.hostname).with_spf_mailfrom_result(
+                        output,
+                        self.data.remote_ip,
+                        &mail_from.address,
+                        &self.data.helo_domain,
+                    )
+                } else {
+                    AuthenticationResults::new(&self.hostname).with_spf_ehlo_result(
+                        output,
+                        self.data.remote_ip,
+                        &self.data.helo_domain,
+                    )
+                }
+                .to_string(),
+            )
+            .with_spf_dns(format!("txt : {} : v=SPF1", output.domain())) // TODO use DNS record
+            .write_rfc5322(
+                (
+                    self.server
+                        .eval_if(&config.name, self, self.data.session_id)
+                        .await
+                        .unwrap_or_else(|| "Mailer Daemon".to_string())
+                        .as_str(),
+                    from_addr.as_str(),
+                ),
+                rcpt,
+                &self
+                    .server
+                    .eval_if(&config.subject, self, self.data.session_id)
+                    .await
+                    .unwrap_or_else(|| "SPF Report".to_string()),
+                &mut report,
+            )
+            .ok();
+
+        trc::event!(
+            OutgoingReport(OutgoingReportEvent::SpfReport),
+            SpanId = self.data.session_id,
+            To = rcpt.to_string(),
+            From = from_addr.to_string(),
+        );
+
+        // Send report
+        self.server
+            .send_report(
+                &from_addr,
+                [rcpt].into_iter(),
+                report,
+                &config.sign,
+                true,
+                self.data.session_id,
+            )
+            .await;
+    }
+}

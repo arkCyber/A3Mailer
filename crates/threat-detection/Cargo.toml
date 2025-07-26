@@ -1,0 +1,66 @@
+[package]
+name = "stalwart-threat-detection"
+version = "0.1.0"
+edition = "2021"
+description = "AI-driven threat detection for Stalwart Mail Server"
+license = "AGPL-3.0-only OR LicenseRef-SEL"
+authors = ["Stalwart Labs Ltd. <hello@stalw.art>"]
+repository = "https://github.com/stalwartlabs/mail-server"
+homepage = "https://stalw.art"
+keywords = ["security", "threat-detection", "ai", "machine-learning", "anomaly"]
+categories = ["security", "machine-learning"]
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async and networking
+futures = "0.3"
+async-trait = "0.1"
+
+# Machine learning and AI
+# Note: These are placeholder dependencies for ML capabilities
+# In production, you might use candle-core, tch, or other ML frameworks
+ndarray = "0.15"
+linfa = "0.7"
+
+# Statistical analysis
+statrs = "0.16"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Regex for pattern matching
+regex = "1.0"
+
+# Hashing for fingerprinting
+sha2 = "0.10"
+blake3 = "1.0"
+
+# Internal dependencies
+common = { path = "../common" }
+utils = { path = "../utils" }
+trc = { path = "../trc" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+criterion = "0.5"
+
+# [[bench]]
+# name = "threat_detection_bench"
+# harness = false
+
+[features]
+default = ["anomaly-detection", "pattern-matching", "behavioral-analysis"]
+anomaly-detection = []
+pattern-matching = []
+behavioral-analysis = []
+ml-models = []
+real-time-analysis = []
+threat-intelligence = []
