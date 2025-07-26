@@ -452,7 +452,7 @@ impl Default for PerformanceMetrics {
 }
 
 /// Result type for test operations
-pub type TestError = Box<dyn std::error::Error + Send + Sync>;
+pub type TestError = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, TestError>;
 
 #[cfg(test)]

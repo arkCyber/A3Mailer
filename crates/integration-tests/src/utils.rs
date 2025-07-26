@@ -1,8 +1,8 @@
 /*!
  * Testing Utilities Module
- * 
+ *
  * This module provides utility functions and helpers for integration testing.
- * 
+ *
  * Features:
  * - Test data generation
  * - Email content generation
@@ -11,7 +11,7 @@
  * - Network utilities
  * - Time and date helpers
  * - Validation utilities
- * 
+ *
  * Author: Stalwart Labs Ltd.
  * Created: 2024-07-26
  */
@@ -83,7 +83,7 @@ impl TestDataGenerator {
             "Monthly Summary",
             "Team Announcement",
         ];
-        
+
         let base = subjects[self.rng.gen_range(0..subjects.len())];
         format!("{} - {}", base, self.random_string(6))
     }
@@ -100,16 +100,16 @@ impl TestDataGenerator {
             "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores.",
             "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.",
         ];
-        
+
         let mut body = String::new();
         let target_length = length.max(100);
-        
+
         while body.len() < target_length {
             let paragraph = paragraphs[self.rng.gen_range(0..paragraphs.len())];
             body.push_str(paragraph);
             body.push_str("\n\n");
         }
-        
+
         body.truncate(target_length);
         body
     }
@@ -129,7 +129,7 @@ impl TestDataGenerator {
     pub fn random_user(&mut self, domain: &str) -> TestUser {
         let user_id = Uuid::new_v4().to_string();
         let username = format!("user_{}", self.random_string(6).to_lowercase());
-        
+
         TestUser {
             id: user_id,
             username: username.clone(),
@@ -145,7 +145,7 @@ impl TestDataGenerator {
         let email_id = Uuid::new_v4().to_string();
         let subject = self.random_subject();
         let body = self.random_email_body(500);
-        
+
         TestEmail {
             id: email_id,
             from: sender.email.clone(),
@@ -173,13 +173,13 @@ impl TestDataGenerator {
             "image/png",
             "application/zip",
         ];
-        
+
         let ext_index = self.rng.gen_range(0..extensions.len());
         let filename = self.random_filename(extensions[ext_index]);
         let content_type = content_types[ext_index].to_string();
         let size = self.rng.gen_range(1024..max_size.max(2048));
         let data = self.random_binary_data(size);
-        
+
         EmailAttachment {
             filename,
             content_type,
@@ -235,21 +235,21 @@ impl FileUtils {
     /// Create a temporary file with specified content
     pub fn create_temp_file(content: &[u8], extension: &str) -> Result<std::path::PathBuf> {
         use std::io::Write;
-        
+
         let temp_dir = std::env::temp_dir();
-        let filename = format!("test_{}_{}.{}", 
+        let filename = format!("test_{}_{}.{}",
             Uuid::new_v4().to_string()[..8].to_string(),
             chrono::Utc::now().timestamp(),
             extension
         );
         let file_path = temp_dir.join(filename);
-        
+
         let mut file = std::fs::File::create(&file_path)
             .map_err(|e| format!("Failed to create temp file: {}", e))?;
-        
+
         file.write_all(content)
             .map_err(|e| format!("Failed to write temp file: {}", e))?;
-        
+
         Ok(file_path)
     }
 
@@ -289,7 +289,7 @@ impl NetworkUtils {
     /// Check if a port is available
     pub fn is_port_available(port: u16) -> bool {
         use std::net::{TcpListener, SocketAddr};
-        
+
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         TcpListener::bind(addr).is_ok()
     }
@@ -307,17 +307,17 @@ impl NetworkUtils {
     /// Get local IP address
     pub fn get_local_ip() -> Result<String> {
         use std::net::{UdpSocket, SocketAddr};
-        
+
         // Connect to a remote address to determine local IP
         let socket = UdpSocket::bind("0.0.0.0:0")
             .map_err(|e| format!("Failed to bind UDP socket: {}", e))?;
-        
+
         socket.connect("8.8.8.8:80")
             .map_err(|e| format!("Failed to connect UDP socket: {}", e))?;
-        
+
         let local_addr = socket.local_addr()
             .map_err(|e| format!("Failed to get local address: {}", e))?;
-        
+
         Ok(local_addr.ip().to_string())
     }
 
@@ -354,7 +354,7 @@ impl TimeUtils {
         let minutes = (total_secs % 3600) / 60;
         let seconds = total_secs % 60;
         let millis = duration.subsec_millis();
-        
+
         if hours > 0 {
             format!("{}h {}m {}s", hours, minutes, seconds)
         } else if minutes > 0 {
@@ -380,7 +380,7 @@ impl TimeUtils {
     {
         tokio::time::timeout(duration, future)
             .await
-            .map_err(|_| "Operation timed out".into())?
+            .map_err(|_| -> TestError { "Operation timed out".into() })?
     }
 }
 
@@ -393,90 +393,90 @@ impl ValidationUtils {
     /// Validate email content
     pub fn validate_email_content(email: &TestEmail) -> Vec<String> {
         let mut errors = Vec::new();
-        
+
         if email.from.is_empty() {
             errors.push("Email sender is empty".to_string());
         }
-        
+
         if email.to.is_empty() {
             errors.push("Email recipients list is empty".to_string());
         }
-        
+
         if email.subject.is_empty() {
             errors.push("Email subject is empty".to_string());
         }
-        
+
         if email.body.is_empty() {
             errors.push("Email body is empty".to_string());
         }
-        
+
         // Validate email addresses
         if !NetworkUtils::is_valid_email(&email.from) {
             errors.push(format!("Invalid sender email: {}", email.from));
         }
-        
+
         for recipient in &email.to {
             if !NetworkUtils::is_valid_email(recipient) {
                 errors.push(format!("Invalid recipient email: {}", recipient));
             }
         }
-        
+
         errors
     }
 
     /// Validate user data
     pub fn validate_user_data(user: &TestUser) -> Vec<String> {
         let mut errors = Vec::new();
-        
+
         if user.username.is_empty() {
             errors.push("Username is empty".to_string());
         }
-        
+
         if user.email.is_empty() {
             errors.push("Email is empty".to_string());
         }
-        
+
         if user.password.is_empty() {
             errors.push("Password is empty".to_string());
         }
-        
+
         if user.domain.is_empty() {
             errors.push("Domain is empty".to_string());
         }
-        
+
         // Validate email format
         if !NetworkUtils::is_valid_email(&user.email) {
             errors.push(format!("Invalid email format: {}", user.email));
         }
-        
+
         // Validate domain format
         if !NetworkUtils::is_valid_domain(&user.domain) {
             errors.push(format!("Invalid domain format: {}", user.domain));
         }
-        
+
         errors
     }
 
     /// Validate attachment data
     pub fn validate_attachment(attachment: &EmailAttachment) -> Vec<String> {
         let mut errors = Vec::new();
-        
+
         if attachment.filename.is_empty() {
             errors.push("Attachment filename is empty".to_string());
         }
-        
+
         if attachment.content_type.is_empty() {
             errors.push("Attachment content type is empty".to_string());
         }
-        
+
         if attachment.data.is_empty() {
             errors.push("Attachment data is empty".to_string());
         }
-        
+
         if attachment.size != attachment.data.len() {
             errors.push("Attachment size mismatch".to_string());
         }
-        
+
         errors
     }
 
@@ -485,7 +485,7 @@ impl ValidationUtils {
         if results.is_empty() {
             return 0.0;
         }
-        
+
         let successful = results.iter().filter(|r| r.success).count();
         successful as f64 / results.len() as f64
     }
@@ -495,7 +495,7 @@ impl ValidationUtils {
         if results.is_empty() {
             return Duration::ZERO;
         }
-        
+
         let total_nanos: u128 = results.iter().map(|r| r.duration.as_nanos()).sum();
         Duration::from_nanos((total_nanos / results.len() as u128) as u64)
     }
@@ -512,7 +512,7 @@ impl TestSetup {
             .with_env_filter("debug")
             .try_init()
             .map_err(|e| format!("Failed to initialize logging: {}", e))?;
-        
+
         info!("Test environment initialized");
         Ok(())
     }
@@ -530,13 +530,13 @@ impl TestSetup {
                     .starts_with("test_")
             })
             .collect();
-        
+
         for file in test_files {
             if let Err(e) = std::fs::remove_file(file.path()) {
                 warn!("Failed to cleanup test file: {}", e);
             }
         }
-        
+
         info!("Test environment cleaned up");
         Ok(())
     }
@@ -556,13 +556,13 @@ mod tests {
     #[test]
     fn test_data_generator() {
         let mut generator = TestDataGenerator::new();
-        
+
         let random_str = generator.random_string(10);
         assert_eq!(random_str.len(), 10);
-        
+
         let email = generator.random_email("test.com");
         assert!(email.contains("@test.com"));
-        
+
         let subject = generator.random_subject();
         assert!(!subject.is_empty());
     }
@@ -579,7 +579,7 @@ mod tests {
     fn test_network_utils() {
         assert!(NetworkUtils::is_valid_email("test@example.com"));
         assert!(!NetworkUtils::is_valid_email("invalid-email"));
-        
+
         assert!(NetworkUtils::is_valid_domain("example.com"));
         assert!(!NetworkUtils::is_valid_domain("invalid"));
     }
@@ -588,7 +588,7 @@ mod tests {
     fn test_time_utils() {
         let timestamp = TimeUtils::current_timestamp();
         assert!(!timestamp.is_empty());
-        
+
         let duration = Duration::from_secs(125);
         let formatted = TimeUtils::format_duration(duration);
         assert!(formatted.contains("2m"));
@@ -598,15 +598,15 @@ mod tests {
     async fn test_file_utils() {
         let content = b"test content";
         let temp_file = FileUtils::create_temp_file(content, "txt").unwrap();
-        
+
         assert!(temp_file.exists());
-        
+
         let read_content = FileUtils::read_file_bytes(&temp_file).unwrap();
         assert_eq!(read_content, content);
-        
+
         let size = FileUtils::get_file_size(&temp_file).unwrap();
         assert_eq!(size, content.len() as u64);
-        
+
         FileUtils::delete_file_if_exists(&temp_file).unwrap();
         assert!(!temp_file.exists());
     }

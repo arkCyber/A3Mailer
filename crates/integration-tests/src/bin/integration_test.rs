@@ -1,12 +1,12 @@
 /*!
  * Integration Test Binary
- * 
+ *
  * This binary provides a comprehensive command-line interface for running
  * integration tests against the Stalwart Mail Server.
- * 
+ *
  * Usage:
  *   cargo run --bin integration-test -- [OPTIONS] [COMMAND]
- * 
+ *
  * Author: Stalwart Labs Ltd.
  * Created: 2024-07-26
  */
@@ -38,35 +38,35 @@ struct Cli {
     /// Configuration file path
     #[arg(short, long, value_name = "FILE")]
     config: Option<PathBuf>,
-    
+
     /// Test environment
     #[arg(short, long, default_value = "testing")]
     environment: String,
-    
+
     /// Output format (text, json, csv, html)
     #[arg(short, long, default_value = "text")]
     output: String,
-    
+
     /// Output file path
     #[arg(long)]
     output_file: Option<PathBuf>,
-    
+
     /// Verbose output
     #[arg(short, long)]
     verbose: bool,
-    
+
     /// Dry run (validate configuration only)
     #[arg(long)]
     dry_run: bool,
-    
+
     /// Continue on failure
     #[arg(long)]
     continue_on_failure: bool,
-    
+
     /// Generate detailed report
     #[arg(long)]
     detailed_report: bool,
-    
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -79,103 +79,103 @@ enum Commands {
         /// Include stress tests
         #[arg(long)]
         include_stress: bool,
-        
+
         /// Include security tests
         #[arg(long)]
         include_security: bool,
-        
+
         /// Maximum test duration in seconds
         #[arg(long, default_value = "7200")]
         max_duration: u64,
     },
-    
+
     /// Run authentication tests
     Auth {
         /// Test specific authentication method
         #[arg(long)]
         method: Option<String>,
     },
-    
+
     /// Run email communication tests
     Email {
         /// Test specific protocol (smtp, imap, pop3, jmap)
         #[arg(long)]
         protocol: Option<String>,
-        
+
         /// Include attachment tests
         #[arg(long)]
         include_attachments: bool,
-        
+
         /// Include bulk email tests
         #[arg(long)]
         include_bulk: bool,
     },
-    
+
     /// Run stress tests
     Stress {
         /// Stress test type
         #[arg(value_enum)]
         test_type: StressTestType,
-        
+
         /// Test intensity (low, medium, high)
         #[arg(long, default_value = "medium")]
         intensity: String,
     },
-    
+
     /// Run scenario tests
     Scenarios {
         /// Specific scenario to run
         #[arg(long)]
         scenario: Option<String>,
-        
+
         /// Number of users for scenario
         #[arg(long, default_value = "10")]
         users: usize,
     },
-    
+
     /// Run security tests
     Security {
         /// Security test category
         #[arg(long)]
         category: Option<String>,
-        
+
         /// Include compliance tests
         #[arg(long)]
         include_compliance: bool,
-        
+
         /// Compliance framework (owasp, nist, iso27001)
         #[arg(long)]
         framework: Option<String>,
     },
-    
+
     /// Generate configuration template
     GenerateConfig {
         /// Template type (basic, stress, corporate, development)
         #[arg(value_enum)]
         template: ConfigTemplate,
-        
+
         /// Output file path
         #[arg(short, long)]
         output: PathBuf,
     },
-    
+
     /// Validate configuration
     ValidateConfig {
         /// Configuration file to validate
         #[arg(value_name = "FILE")]
         config_file: PathBuf,
     },
-    
+
     /// Show test information
     Info {
         /// Show available test suites
         #[arg(long)]
         suites: bool,
-        
+
         /// Show configuration options
         #[arg(long)]
         config_options: bool,
-        
+
         /// Show examples
         #[arg(long)]
         examples: bool,
@@ -205,18 +205,18 @@ enum ConfigTemplate {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
-    
+
     // Initialize test environment
     TestSetup::init_test_env()?;
-    
+
     // Initialize logging
     let log_level = if cli.verbose { "debug" } else { "info" };
     tracing_subscriber::fmt()
         .with_env_filter(log_level)
         .init();
-    
+
     info!("Starting Stalwart Mail Server Integration Testing Tool");
-    
+
     // Handle special commands that don't require configuration
     match &cli.command {
         Commands::GenerateConfig { template, output } => {
@@ -230,50 +230,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         _ => {}
     }
-    
+
     // Load configuration
     let config = load_configuration(&cli).await?;
-    
+
     if cli.dry_run {
         info!("Dry run mode - validating configuration only");
         validate_configuration(&config)?;
         info!("Configuration validation successful");
         return Ok(());
     }
-    
+
     // Create test context
     let context = TestContext::new(config);
-    
+
     // Initialize metrics collector
     let metrics_collector = MetricsCollector::new();
     metrics_collector.start_collection().await?;
-    
+
     // Execute tests based on command
     let start_time = Instant::now();
     let results = execute_tests(&cli, &context).await?;
     let total_duration = start_time.elapsed();
-    
+
     // Generate and display results
     display_results(&results, total_duration, &cli).await?;
-    
+
     // Generate detailed report if requested
     if cli.detailed_report {
         let metrics_report = metrics_collector.generate_report().await;
         let analysis = metrics_collector.analyze_metrics().await;
-        
+
         generate_detailed_report(&results, &metrics_report, &analysis, &cli).await?;
     }
-    
+
     // Cleanup
     TestSetup::cleanup_test_env()?;
-    
+
     // Determine exit code based on test results
     let failed_tests = results.iter().filter(|r| !r.success).count();
     if failed_tests > 0 && !cli.continue_on_failure {
         error!("{} tests failed", failed_tests);
         std::process::exit(1);
     }
-    
+
     info!("Integration testing completed successfully");
     Ok(())
 }
@@ -287,15 +287,15 @@ async fn execute_tests(
         Commands::All { include_stress, include_security, max_duration: _ } => {
             info!("Running all integration tests");
             let mut all_results = Vec::new();
-            
+
             // Authentication tests
             let auth_suite = AuthTestSuite::new(context.clone());
             all_results.extend(auth_suite.run_all_tests().await?);
-            
+
             // Email tests
             let email_suite = EmailTestSuite::new(context.clone());
             all_results.extend(email_suite.run_all_tests().await?);
-            
+
             // Scenario tests
             let scenario_suite = ScenarioTestSuite::new(context.clone());
             let scenario_results = scenario_suite.run_all_scenarios().await?;
@@ -303,13 +303,13 @@ async fn execute_tests(
             for scenario_result in scenario_results {
                 all_results.extend(scenario_result.test_results);
             }
-            
+
             // Stress tests (if requested)
             if *include_stress {
                 let stress_suite = StressTestSuite::new(context.clone());
                 all_results.extend(stress_suite.run_all_tests().await?);
             }
-            
+
             // Security tests (if requested)
             if *include_security {
                 let security_suite = SecurityTestSuite::new(context.clone());
@@ -327,22 +327,22 @@ async fn execute_tests(
                     });
                 }
             }
-            
+
             Ok(all_results)
         },
-        
+
         Commands::Auth { method: _ } => {
             info!("Running authentication tests");
             let auth_suite = AuthTestSuite::new(context.clone());
             auth_suite.run_all_tests().await
         },
-        
+
         Commands::Email { protocol: _, include_attachments: _, include_bulk: _ } => {
             info!("Running email communication tests");
             let email_suite = EmailTestSuite::new(context.clone());
             email_suite.run_all_tests().await
         },
-        
+
         Commands::Stress { test_type, intensity: _ } => {
             info!("Running stress tests: {:?}", test_type);
             let stress_suite = StressTestSuite::new(context.clone());
@@ -355,26 +355,26 @@ async fn execute_tests(
                 StressTestType::Endurance => stress_suite.test_endurance().await,
             }
         },
-        
+
         Commands::Scenarios { scenario: _, users: _ } => {
             info!("Running scenario tests");
             let scenario_suite = ScenarioTestSuite::new(context.clone());
             let scenario_results = scenario_suite.run_all_scenarios().await?;
-            
+
             // Convert scenario results to test results
             let mut all_results = Vec::new();
             for scenario_result in scenario_results {
                 all_results.extend(scenario_result.test_results);
             }
-            
+
             Ok(all_results)
         },
-        
+
         Commands::Security { category: _, include_compliance: _, framework: _ } => {
             info!("Running security tests");
             let security_suite = SecurityTestSuite::new(context.clone());
             let security_results = security_suite.run_all_tests().await?;
-            
+
             // Convert security results to test results
             let mut all_results = Vec::new();
             for security_result in security_results {
@@ -388,10 +388,10 @@ async fn execute_tests(
                     timestamp: security_result.timestamp,
                 });
             }
-            
+
             Ok(all_results)
         },
-        
+
         _ => unreachable!("Command should have been handled earlier"),
     }
 }
@@ -399,7 +399,7 @@ async fn execute_tests(
 /// Load configuration from file or use defaults
 async fn load_configuration(cli: &Cli) -> Result<TestConfig, Box<dyn std::error::Error>> {
     let mut config_manager = ConfigManager::new();
-    
+
     if let Some(config_path) = &cli.config {
         info!("Loading configuration from: {:?}", config_path);
         config_manager.load_from_file(config_path)?;
@@ -410,7 +410,7 @@ async fn load_configuration(cli: &Cli) -> Result<TestConfig, Box<dyn std::error:
             return Ok(env_config);
         }
     }
-    
+
     // Get environment-specific configuration
     let environment = match cli.environment.as_str() {
         "development" => stalwart_integration_tests::config::Environment::Development,
@@ -423,7 +423,7 @@ async fn load_configuration(cli: &Cli) -> Result<TestConfig, Box<dyn std::error:
             stalwart_integration_tests::config::Environment::Testing
         }
     };
-    
+
     let config = config_manager.get_config(&environment);
     Ok(config)
 }
@@ -432,7 +432,7 @@ async fn load_configuration(cli: &Cli) -> Result<TestConfig, Box<dyn std::error:
 fn validate_configuration(config: &TestConfig) -> Result<(), Box<dyn std::error::Error>> {
     let config_manager = ConfigManager::new();
     let validation_result = config_manager.validate_config(config);
-    
+
     if !validation_result.valid {
         error!("Configuration validation failed:");
         for error in &validation_result.errors {
@@ -440,14 +440,14 @@ fn validate_configuration(config: &TestConfig) -> Result<(), Box<dyn std::error:
         }
         return Err("Invalid configuration".into());
     }
-    
+
     if !validation_result.warnings.is_empty() {
         warn!("Configuration warnings:");
         for warning in &validation_result.warnings {
             warn!("  - {}", warning);
         }
     }
-    
+
     info!("Configuration validation successful");
     Ok(())
 }
@@ -458,24 +458,24 @@ async fn generate_config_template(
     output_path: &PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config_manager = ConfigManager::new();
-    
+
     let template_name = match template {
         ConfigTemplate::Basic => "basic",
         ConfigTemplate::Stress => "stress",
         ConfigTemplate::Corporate => "corporate",
         ConfigTemplate::Development => "development",
     };
-    
+
     let config_template = config_manager.generate_template(template_name);
-    
+
     // Save template to file
     let content = toml::to_string_pretty(&config_template.config)?;
     std::fs::write(output_path, content)?;
-    
+
     info!("Generated {} configuration template: {:?}", template_name, output_path);
     println!("Template: {}", config_template.name);
     println!("Description: {}", config_template.description);
-    
+
     Ok(())
 }
 
@@ -483,10 +483,10 @@ async fn generate_config_template(
 async fn validate_config_file(config_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let mut config_manager = ConfigManager::new();
     config_manager.load_from_file(config_path)?;
-    
+
     let config = config_manager.get_config(&stalwart_integration_tests::config::Environment::Testing);
     validate_configuration(&config)?;
-    
+
     println!("Configuration file is valid: {:?}", config_path);
     Ok(())
 }
@@ -506,7 +506,7 @@ async fn show_info(
         println!("  security    - Security vulnerability tests");
         println!();
     }
-    
+
     if show_config_options {
         println!("Configuration Options:");
         println!("  Server Configuration:");
@@ -521,11 +521,11 @@ async fn show_info(
         println!("    target_eps, max_connections, stress_duration, ramp_up_duration");
         println!();
     }
-    
+
     if show_examples {
         print_examples();
     }
-    
+
     Ok(())
 }
 
@@ -541,14 +541,14 @@ async fn display_results(
         "html" => format_html_results(results, total_duration)?,
         "text" | _ => format_text_results(results, total_duration)?,
     };
-    
+
     if let Some(output_file) = &cli.output_file {
         std::fs::write(output_file, &output_content)?;
         info!("Results written to: {:?}", output_file);
     } else {
         println!("{}", output_content);
     }
-    
+
     Ok(())
 }
 
@@ -558,38 +558,38 @@ fn format_text_results(
     total_duration: Duration,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let mut output = String::new();
-    
+
     output.push_str("=== Integration Test Results ===\n");
     output.push_str(&format!("Total Duration: {:?}\n", total_duration));
     output.push_str(&format!("Total Tests: {}\n", results.len()));
-    
+
     let successful = results.iter().filter(|r| r.success).count();
     let failed = results.len() - successful;
-    
+
     output.push_str(&format!("Successful: {}\n", successful));
     output.push_str(&format!("Failed: {}\n", failed));
     output.push_str(&format!("Success Rate: {:.2}%\n", (successful as f64 / results.len() as f64) * 100.0));
-    
+
     if !results.is_empty() {
         let avg_duration = Duration::from_nanos(
-            results.iter().map(|r| r.duration.as_nanos()).sum::<u128>() / results.len() as u128
+            (results.iter().map(|r| r.duration.as_nanos()).sum::<u128>() / results.len() as u128) as u64
         );
         output.push_str(&format!("Average Test Duration: {:?}\n", avg_duration));
-        
+
         let throughput = results.len() as f64 / total_duration.as_secs_f64();
         output.push_str(&format!("Throughput: {:.2} tests/sec\n", throughput));
     }
-    
+
     output.push_str("\n=== Individual Test Results ===\n");
     for result in results {
         let status = if result.success { "PASS" } else { "FAIL" };
         output.push_str(&format!("{}: {} ({:?})\n", status, result.name, result.duration));
-        
+
         if let Some(error) = &result.error {
             output.push_str(&format!("  Error: {}\n", error));
         }
     }
-    
+
     Ok(output)
 }
 
@@ -605,7 +605,7 @@ fn format_json_results(
         "failed_tests": results.iter().filter(|r| !r.success).count(),
         "results": results
     });
-    
+
     Ok(serde_json::to_string_pretty(&summary)?)
 }
 
@@ -616,7 +616,7 @@ fn format_csv_results(
 ) -> Result<String, Box<dyn std::error::Error>> {
     let mut output = String::new();
     output.push_str("test_id,name,success,duration_ms,error,timestamp\n");
-    
+
     for result in results {
         output.push_str(&format!(
             "{},{},{},{},{},{}\n",
@@ -628,7 +628,7 @@ fn format_csv_results(
             result.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
         ));
     }
-    
+
     Ok(output)
 }
 
@@ -640,7 +640,7 @@ fn format_html_results(
     let successful = results.iter().filter(|r| r.success).count();
     let failed = results.len() - successful;
     let success_rate = (successful as f64 / results.len() as f64) * 100.0;
-    
+
     let mut html = String::new();
     html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
     html.push_str("<title>Integration Test Results</title>\n");
@@ -653,32 +653,32 @@ fn format_html_results(
     html.push_str(".fail { color: red; }\n");
     html.push_str("</style>\n");
     html.push_str("</head>\n<body>\n");
-    
+
     html.push_str("<h1>Integration Test Results</h1>\n");
     html.push_str(&format!("<p><strong>Total Duration:</strong> {:?}</p>\n", total_duration));
     html.push_str(&format!("<p><strong>Total Tests:</strong> {}</p>\n", results.len()));
     html.push_str(&format!("<p><strong>Successful:</strong> {}</p>\n", successful));
     html.push_str(&format!("<p><strong>Failed:</strong> {}</p>\n", failed));
     html.push_str(&format!("<p><strong>Success Rate:</strong> {:.2}%</p>\n", success_rate));
-    
+
     html.push_str("<h2>Test Results</h2>\n");
     html.push_str("<table>\n");
     html.push_str("<tr><th>Status</th><th>Test Name</th><th>Duration</th><th>Error</th></tr>\n");
-    
+
     for result in results {
         let status_class = if result.success { "pass" } else { "fail" };
         let status_text = if result.success { "PASS" } else { "FAIL" };
         let error_text = result.error.as_deref().unwrap_or("");
-        
+
         html.push_str(&format!(
             "<tr><td class=\"{}\"><strong>{}</strong></td><td>{}</td><td>{:?}</td><td>{}</td></tr>\n",
             status_class, status_text, result.name, result.duration, error_text
         ));
     }
-    
+
     html.push_str("</table>\n");
     html.push_str("</body>\n</html>\n");
-    
+
     Ok(html)
 }
 
@@ -692,7 +692,7 @@ async fn generate_detailed_report(
     let report_path = cli.output_file.as_ref()
         .map(|p| p.with_extension("detailed.html"))
         .unwrap_or_else(|| PathBuf::from("detailed_report.html"));
-    
+
     let mut html = String::new();
     html.push_str("<!DOCTYPE html>\n<html>\n<head>\n");
     html.push_str("<title>Detailed Integration Test Report</title>\n");
@@ -709,17 +709,17 @@ async fn generate_detailed_report(
     html.push_str(".critical { color: red; font-weight: bold; }\n");
     html.push_str("</style>\n");
     html.push_str("</head>\n<body>\n");
-    
+
     html.push_str("<h1>Detailed Integration Test Report</h1>\n");
     html.push_str(&format!("<p>Generated: {}</p>\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
-    
+
     // Executive Summary
     html.push_str("<h2>Executive Summary</h2>\n");
     html.push_str(&format!("<p><strong>Overall Grade:</strong> {}</p>\n", analysis.summary.overall_grade));
     html.push_str(&format!("<p><strong>Success Rate:</strong> {:.2}%</p>\n", analysis.summary.success_rate));
     html.push_str(&format!("<p><strong>Performance Score:</strong> {:.2}</p>\n", analysis.summary.performance_score));
     html.push_str(&format!("<p><strong>Efficiency Score:</strong> {:.2}</p>\n", analysis.summary.efficiency_score));
-    
+
     // Performance Insights
     if !analysis.insights.is_empty() {
         html.push_str("<h2>Performance Insights</h2>\n");
@@ -737,7 +737,7 @@ async fn generate_detailed_report(
         }
         html.push_str("</ul>\n");
     }
-    
+
     // Recommendations
     if !analysis.recommendations.is_empty() {
         html.push_str("<h2>Recommendations</h2>\n");
@@ -747,18 +747,18 @@ async fn generate_detailed_report(
         }
         html.push_str("</ol>\n");
     }
-    
+
     // Metrics Report
     html.push_str("<h2>Metrics Report</h2>\n");
     html.push_str("<pre>\n");
     html.push_str(metrics_report);
     html.push_str("</pre>\n");
-    
+
     html.push_str("</body>\n</html>\n");
-    
+
     std::fs::write(&report_path, html)?;
     info!("Detailed report generated: {:?}", report_path);
-    
+
     Ok(())
 }
 

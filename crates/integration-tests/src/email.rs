@@ -697,7 +697,7 @@ impl EmailTestSuite {
             name: "JMAP Session Establishment".to_string(),
             success,
             duration,
-            error: session_result.err().map(|e| e.to_string()),
+            error: session_result.as_ref().err().map(|e| e.to_string()),
             metadata: {
                 let mut meta = HashMap::new();
                 meta.insert("user".to_string(), user.email.clone());
@@ -729,7 +729,7 @@ impl EmailTestSuite {
             name: "JMAP Email Operations".to_string(),
             success,
             duration,
-            error: operations_result.err().map(|e| e.to_string()),
+            error: operations_result.as_ref().err().map(|e| e.to_string()),
             metadata: {
                 let mut meta = HashMap::new();
                 meta.insert("user".to_string(), user.email.clone());
@@ -761,7 +761,7 @@ impl EmailTestSuite {
             name: "JMAP Mailbox Operations".to_string(),
             success,
             duration,
-            error: mailbox_result.err().map(|e| e.to_string()),
+            error: mailbox_result.as_ref().err().map(|e| e.to_string()),
             metadata: {
                 let mut meta = HashMap::new();
                 meta.insert("user".to_string(), user.email.clone());
@@ -819,7 +819,7 @@ impl EmailTestSuite {
             name: "Bulk Email Sending".to_string(),
             success,
             duration,
-            error: bulk_result.err().map(|e| e.to_string()),
+            error: bulk_result.as_ref().err().map(|e| e.to_string()),
             metadata: {
                 let mut meta = HashMap::new();
                 meta.insert("sender".to_string(), sender.email.clone());

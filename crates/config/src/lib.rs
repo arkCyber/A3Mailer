@@ -305,27 +305,27 @@ impl ConfigManager {
     /// Reload configuration from sources
     pub async fn reload_config(&self) -> Result<()> {
         info!("Reloading configuration from sources");
-        
+
         let mut new_config = self.load_config_from_sources().await?;
-        
+
         // Validate the new configuration
         validator::validate_config(&new_config).await?;
-        
+
         // Apply secrets
         self.secrets_manager.apply_secrets(&mut new_config).await?;
-        
+
         // Update the configuration
         {
             let mut config = self.config.write().await;
             *config = new_config;
         }
-        
+
         // Update timestamp
         {
             let mut last_updated = self.last_updated.write().await;
             *last_updated = Utc::now();
         }
-        
+
         info!("Configuration reloaded successfully");
         Ok(())
     }
@@ -333,7 +333,7 @@ impl ConfigManager {
     /// Load configuration from all sources
     async fn load_config_from_sources(&self) -> Result<A3MailerConfig> {
         let mut config = A3MailerConfig::default();
-        
+
         for source in &self.sources {
             match source {
                 ConfigSource::File(path) => {
@@ -354,7 +354,7 @@ impl ConfigManager {
                 }
             }
         }
-        
+
         Ok(config)
     }
 
@@ -370,16 +370,16 @@ impl ConfigManager {
             warn!("Configuration watcher is already running");
             return Ok(());
         }
-        
+
         info!("Starting configuration watcher for hot reload");
-        
+
         let watcher = watcher::ConfigWatcher::new(
             self.sources.clone(),
             Arc::clone(&self.config),
         ).await?;
-        
+
         self.watcher = Some(watcher);
-        
+
         info!("Configuration watcher started");
         Ok(())
     }
@@ -391,7 +391,7 @@ impl ConfigManager {
             watcher.stop().await?;
             info!("Configuration watcher stopped");
         }
-        
+
         Ok(())
     }
 }
@@ -417,9 +417,9 @@ impl ConfigManagerBuilder {
     /// Build the configuration manager
     pub async fn build(self) -> Result<ConfigManager> {
         info!("Building configuration manager with {} sources", self.sources.len());
-        
+
         let secrets_manager = secrets::SecretsManager::new().await?;
-        
+
         let manager = ConfigManager {
             config: Arc::new(RwLock::new(A3MailerConfig::default())),
             sources: self.sources,
@@ -427,10 +427,10 @@ impl ConfigManagerBuilder {
             secrets_manager,
             last_updated: Arc::new(RwLock::new(Utc::now())),
         };
-        
+
         // Load initial configuration
         manager.reload_config().await?;
-        
+
         info!("Configuration manager built successfully");
         Ok(manager)
     }
@@ -452,19 +452,132 @@ impl Default for A3MailerConfig {
     }
 }
 
-// Default implementations for all config structures would continue here...
+// Default implementations for all config structures
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            hostname: "localhost".to_string(),
+            bind_addresses: vec!["0.0.0.0:25".to_string(), "0.0.0.0:143".to_string()],
+            max_connections: 10000,
+            worker_threads: None,
+            timeout_seconds: 300,
+            tls: TlsConfig::default(),
+        }
+    }
+}
+
+impl Default for AiConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            model_path: "models/".to_string(),
+            threat_detection: ThreatDetectionConfig::default(),
+            content_analysis: ContentAnalysisConfig::default(),
+            behavioral_analysis: BehavioralAnalysisConfig::default(),
+            performance: AiPerformanceConfig::default(),
+        }
+    }
+}
+
+impl Default for Web3Config {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            blockchain_network: "ethereum".to_string(),
+            rpc_url: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID".to_string(),
+            contract_addresses: HashMap::new(),
+            did: DidConfig::default(),
+            ipfs: IpfsConfig::default(),
+            smart_contracts: SmartContractsConfig::default(),
+        }
+    }
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            backend: "postgresql".to_string(),
+            connection_string: "postgresql://user:pass@localhost/a3mailer".to_string(),
+            max_connections: 100,
+            cache: CacheConfig::default(),
+            replication: ReplicationConfig::default(),
+            backup: BackupConfig::default(),
+        }
+    }
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            encryption: EncryptionConfig::default(),
+            authentication: AuthenticationConfig::default(),
+            authorization: AuthorizationConfig::default(),
+            rate_limiting: RateLimitingConfig::default(),
+            firewall: FirewallConfig::default(),
+        }
+    }
+}
+
+impl Default for MonitoringConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            metrics_port: 9090,
+            health_checks: HealthCheckConfig::default(),
+            alerting: AlertingConfig::default(),
+            tracing: TracingConfig::default(),
+        }
+    }
+}
+
+impl Default for LoggingConfig {
+    fn default() -> Self {
+        Self {
+            level: "info".to_string(),
+            format: "json".to_string(),
+            output: vec![LogOutput::Stdout, LogOutput::File("logs/a3mailer.log".to_string())],
+            rotation: LogRotationConfig::default(),
+            structured: true,
+        }
+    }
+}
+
+impl Default for ProtocolsConfig {
+    fn default() -> Self {
+        Self {
+            smtp: SmtpConfig::default(),
+            imap: ImapConfig::default(),
+            pop3: Pop3Config::default(),
+            jmap: JmapConfig::default(),
+            caldav: CaldavConfig::default(),
+            carddav: CarddavConfig::default(),
+        }
+    }
+}
+
+impl Default for EnterpriseConfig {
+    fn default() -> Self {
+        Self {
+            license_key: None,
+            clustering: ClusteringConfig::default(),
+            compliance: ComplianceConfig::default(),
+            audit: AuditConfig::default(),
+            sso: SsoConfig::default(),
+        }
+    }
+}
 
 /// Initialize configuration system
 pub async fn init_config(sources: Vec<ConfigSource>) -> Result<ConfigManager> {
     info!("Initializing A3Mailer configuration system");
-    
+
     let mut builder = ConfigManager::builder();
     for source in sources {
         builder = builder.add_source(source);
     }
-    
+
     let manager = builder.build().await?;
-    
+
     info!("A3Mailer configuration system initialized successfully");
     Ok(manager)
 }
