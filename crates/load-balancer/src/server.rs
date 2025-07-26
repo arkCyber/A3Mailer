@@ -1,12 +1,8 @@
 //! Server implementation
 
 use crate::{config::ServerConfig, error::Result, proxy::ProxyService};
-use hyper::{body::Incoming, Request, Response};
-use hyper_util::rt::TokioIo;
-use hyper_util::server::conn::auto::Builder;
-use tower::Service;
-use http_body_util::Full;
-use bytes::Bytes;
+use hyper::{Body, Request, Response, Server};
+use hyper::service::{make_service_fn, service_fn};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -29,23 +25,43 @@ impl LoadBalancerServer {
     }
 
     /// Start the server
-    pub async fn start(&mut self, _proxy_service: Arc<ProxyService>) -> Result<()> {
+    pub async fn start(&mut self, proxy_service: Arc<ProxyService>) -> Result<()> {
         let addr: SocketAddr = format!("{}:{}", self.config.listen_address, self.config.listen_port)
             .parse()
             .map_err(|e| crate::error::LoadBalancerError::Config(format!("Invalid address: {}", e)))?;
 
-        let (shutdown_tx, _shutdown_rx) = oneshot::channel();
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
         self.shutdown_tx = Some(shutdown_tx);
 
-        // TODO: Implement actual server with hyper 1.0 API
-        // For now, just bind to the address to verify it works
-        let _listener = tokio::net::TcpListener::bind(&addr).await
-            .map_err(|e| crate::error::LoadBalancerError::Server(format!("Failed to bind: {}", e)))?;
+        let make_svc = make_service_fn(move |_conn| {
+            let proxy_service = proxy_service.clone();
+            async move {
+                Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
+                    let proxy_service = proxy_service.clone();
+                    async move {
+                        match proxy_service.handle_request(req).await {
+                            Ok(response) => Ok::<Response<Body>, Infallible>(response),
+                            Err(_) => Ok(Response::builder()
+                                .status(500)
+                                .body(Body::from("Internal Server Error"))
+                                .unwrap()),
+                        }
+                    }
+                }))
+            }
+        });
+
+        let server = Server::bind(&addr)
+            .serve(make_svc)
+            .with_graceful_shutdown(async {
+                shutdown_rx.await.ok();
+            });
 
         tracing::info!("Load balancer server listening on {}", addr);
 
-        // TODO: Accept connections and handle requests
-        // This is a placeholder implementation
+        if let Err(e) = server.await {
+            return Err(crate::error::LoadBalancerError::Server(format!("Server error: {}", e)));
+        }
 
         Ok(())
     }

@@ -52,12 +52,13 @@ pub mod models;
 pub mod metrics;
 pub mod error;
 
-pub use config::ThreatDetectionConfig;
-pub use detector::ThreatDetector;
-pub use anomaly::{AnomalyDetector, AnomalyScore};
-pub use patterns::{PatternMatcher, ThreatPattern};
-pub use behavioral::{BehavioralAnalyzer, BehaviorProfile};
-pub use intelligence::{ThreatIntelligence, ThreatIndicator};
+pub use config::{ThreatDetectionConfig, AnomalyDetectionConfig, PatternMatchingConfig,
+                BehavioralAnalysisConfig, ThreatIntelligenceConfig, ThreatFeed};
+pub use detector::{ThreatDetector, EmailContext, AttachmentInfo, DetectionStats};
+pub use anomaly::{AnomalyDetector, AnomalyScore, AnomalyResult, DetectedAnomaly, AnomalyType};
+pub use patterns::{PatternMatcher, ThreatPattern, PatternType, PatternMatch, MatchLocation};
+pub use behavioral::{BehavioralAnalyzer, BehaviorProfile, BehavioralAnomaly, BehavioralAnomalyType};
+pub use intelligence::{ThreatIntelligence, ThreatIndicator, IndicatorType, IntelligenceMatch};
 pub use error::{ThreatDetectionError, Result};
 
 /// Threat severity levels
@@ -117,6 +118,8 @@ pub enum ThreatType {
     SuspiciousLogin,
     /// Rate limiting violation
     RateLimitViolation,
+    /// Behavioral anomaly
+    BehavioralAnomaly,
     /// Unknown threat
     Unknown,
 }

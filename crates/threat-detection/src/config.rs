@@ -8,37 +8,37 @@ use serde::{Deserialize, Serialize};
 pub struct ThreatDetectionConfig {
     /// Enable anomaly detection
     pub anomaly_detection_enabled: bool,
-    
+
     /// Enable pattern matching
     pub pattern_matching_enabled: bool,
-    
+
     /// Enable behavioral analysis
     pub behavioral_analysis_enabled: bool,
-    
+
     /// Enable threat intelligence integration
     pub threat_intelligence_enabled: bool,
-    
+
     /// Anomaly detection configuration
-    pub anomaly_config: AnomalyDetectionConfig,
-    
+    pub anomaly: AnomalyDetectionConfig,
+
     /// Pattern matching configuration
-    pub pattern_config: PatternMatchingConfig,
-    
+    pub patterns: PatternMatchingConfig,
+
     /// Behavioral analysis configuration
-    pub behavioral_config: BehavioralAnalysisConfig,
-    
+    pub behavioral: BehavioralAnalysisConfig,
+
     /// Threat intelligence configuration
-    pub intelligence_config: ThreatIntelligenceConfig,
-    
+    pub intelligence: ThreatIntelligenceConfig,
+
     /// Maximum number of events to keep in history
     pub max_events_history: usize,
-    
+
     /// Detection interval
     pub detection_interval: Duration,
-    
+
     /// Alert thresholds
     pub alert_thresholds: AlertThresholds,
-    
+
     /// Model update interval
     pub model_update_interval: Duration,
 }
@@ -48,16 +48,19 @@ pub struct ThreatDetectionConfig {
 pub struct AnomalyDetectionConfig {
     /// Statistical threshold for anomaly detection
     pub statistical_threshold: f64,
-    
+
+    /// Anomaly threshold for threat detection
+    pub anomaly_threshold: f64,
+
     /// Machine learning model path
     pub ml_model_path: Option<String>,
-    
+
     /// Window size for statistical analysis
     pub window_size: usize,
-    
+
     /// Minimum samples required for analysis
     pub min_samples: usize,
-    
+
     /// Features to analyze
     pub features: Vec<String>,
 }
@@ -67,13 +70,13 @@ pub struct AnomalyDetectionConfig {
 pub struct PatternMatchingConfig {
     /// Path to threat patterns file
     pub patterns_file: String,
-    
+
     /// Enable regex patterns
     pub regex_enabled: bool,
-    
+
     /// Enable signature-based detection
     pub signature_enabled: bool,
-    
+
     /// Pattern update interval
     pub update_interval: Duration,
 }
@@ -83,16 +86,16 @@ pub struct PatternMatchingConfig {
 pub struct BehavioralAnalysisConfig {
     /// Learning period for baseline behavior
     pub learning_period: Duration,
-    
+
     /// Deviation threshold for anomalous behavior
     pub deviation_threshold: f64,
-    
+
     /// User behavior features to track
     pub user_features: Vec<String>,
-    
+
     /// System behavior features to track
     pub system_features: Vec<String>,
-    
+
     /// Profile update interval
     pub profile_update_interval: Duration,
 }
@@ -101,36 +104,36 @@ pub struct BehavioralAnalysisConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatIntelligenceConfig {
     /// Threat intelligence feeds
-    pub feeds: Vec<ThreatFeedConfig>,
-    
+    pub feeds: Vec<ThreatFeed>,
+
     /// Feed update interval
     pub update_interval: Duration,
-    
+
     /// Cache duration for threat indicators
     pub cache_duration: Duration,
-    
+
     /// API timeout
     pub api_timeout: Duration,
 }
 
 /// Threat feed configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ThreatFeedConfig {
+pub struct ThreatFeed {
     /// Feed name
     pub name: String,
-    
+
     /// Feed URL
     pub url: String,
-    
+
     /// API key (if required)
     pub api_key: Option<String>,
-    
+
     /// Feed format
     pub format: ThreatFeedFormat,
-    
+
     /// Feed priority
     pub priority: u8,
-    
+
     /// Enable this feed
     pub enabled: bool,
 }
@@ -155,13 +158,13 @@ pub enum ThreatFeedFormat {
 pub struct AlertThresholds {
     /// Low severity threshold
     pub low_threshold: f64,
-    
+
     /// Medium severity threshold
     pub medium_threshold: f64,
-    
+
     /// High severity threshold
     pub high_threshold: f64,
-    
+
     /// Critical severity threshold
     pub critical_threshold: f64,
 }
@@ -173,10 +176,10 @@ impl Default for ThreatDetectionConfig {
             pattern_matching_enabled: true,
             behavioral_analysis_enabled: true,
             threat_intelligence_enabled: false,
-            anomaly_config: AnomalyDetectionConfig::default(),
-            pattern_config: PatternMatchingConfig::default(),
-            behavioral_config: BehavioralAnalysisConfig::default(),
-            intelligence_config: ThreatIntelligenceConfig::default(),
+            anomaly: AnomalyDetectionConfig::default(),
+            patterns: PatternMatchingConfig::default(),
+            behavioral: BehavioralAnalysisConfig::default(),
+            intelligence: ThreatIntelligenceConfig::default(),
             max_events_history: 10000,
             detection_interval: Duration::from_secs(60),
             alert_thresholds: AlertThresholds::default(),
@@ -189,6 +192,7 @@ impl Default for AnomalyDetectionConfig {
     fn default() -> Self {
         Self {
             statistical_threshold: 2.0,
+            anomaly_threshold: 0.7,
             ml_model_path: None,
             window_size: 100,
             min_samples: 10,
@@ -272,7 +276,7 @@ mod tests {
         let config = ThreatDetectionConfig::default();
         let serialized = serde_json::to_string(&config).unwrap();
         let deserialized: ThreatDetectionConfig = serde_json::from_str(&serialized).unwrap();
-        
+
         assert_eq!(config.max_events_history, deserialized.max_events_history);
     }
 }

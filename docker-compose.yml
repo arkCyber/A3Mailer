@@ -1,165 +1,196 @@
-# A3Mailer Development Environment
-# This docker-compose file sets up a complete development environment for A3Mailer
+# A3Mailer Production Environment
+# AI-Powered Web3-Native Mail Server with complete infrastructure
 
 version: '3.8'
 
 services:
-  # A3Mailer main service
+  # A3Mailer Main Service
   a3mailer:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: a3mailer-dev
+    image: arkCyber/a3mailer:latest
+    container_name: a3mailer
+    restart: unless-stopped
     ports:
-      # SMTP ports
       - "25:25"     # SMTP
-      - "587:587"   # SMTP Submission
-      - "465:465"   # SMTP over SSL
-      # IMAP ports
       - "143:143"   # IMAP
-      - "993:993"   # IMAP over SSL
-      # POP3 ports
-      - "110:110"   # POP3
-      - "995:995"   # POP3 over SSL
-      # ManageSieve
+      - "993:993"   # IMAPS
+      - "587:587"   # SMTP Submission
+      - "8080:8080" # Web Admin
       - "4190:4190" # ManageSieve
-      # HTTP/HTTPS
-      - "8080:8080" # HTTP Admin Interface
-      - "443:443"   # HTTPS
     volumes:
-      - a3mailer_data:/opt/a3mailer
-      - ./resources/config:/opt/a3mailer/etc:ro
-      - ./resources/html-templates:/opt/a3mailer/templates:ro
+      - a3mailer-data:/opt/a3mailer
+      - a3mailer-config:/etc/a3mailer
+      - a3mailer-logs:/var/log/a3mailer
+      - ./config/a3mailer.toml:/etc/a3mailer/config.toml:ro
     environment:
-      - RUST_LOG=debug
-      - RUST_BACKTRACE=1
+      - RUST_LOG=info
+      - A3MAILER_CONFIG=/etc/a3mailer/config.toml
+      - A3MAILER_AI_ENABLED=true
+      - A3MAILER_WEB3_ENABLED=true
     depends_on:
       - postgres
       - redis
+      - elasticsearch
     networks:
       - a3mailer-network
-    restart: unless-stopped
-
-  # PostgreSQL database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  # PostgreSQL Database
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: a3mailer-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: a3mailer
       POSTGRES_USER: a3mailer
-      POSTGRES_PASSWORD: a3mailer_dev_password
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-a3mailer_secure_password}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./resources/docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5432:5432"
+      - postgres-data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d
     networks:
       - a3mailer-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U a3mailer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Redis for caching and sessions
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: a3mailer-redis
-    command: redis-server --appendonly yes --requirepass a3mailer_redis_password
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-a3mailer_redis_password}
     volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
+      - redis-data:/data
     networks:
       - a3mailer-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Elasticsearch for full-text search (optional)
+  # Elasticsearch for Search and Analytics
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: a3mailer-elasticsearch
+    restart: unless-stopped
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-      - "9300:9300"
+      - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - a3mailer-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  # AI/ML Services
+  ai-service:
+    image: arkCyber/a3mailer-ai:latest
+    container_name: a3mailer-ai
     restart: unless-stopped
-    profiles:
-      - full
+    environment:
+      - MODEL_PATH=/models
+      - THREAT_DETECTION_ENABLED=true
+      - NLP_ENABLED=true
+      - BEHAVIORAL_ANALYSIS_ENABLED=true
+    volumes:
+      - ai-models:/models
+      - ai-data:/data
+    networks:
+      - a3mailer-network
 
-  # Prometheus for metrics collection
+  # Web3 Services
+  web3-service:
+    image: arkCyber/a3mailer-web3:latest
+    container_name: a3mailer-web3
+    restart: unless-stopped
+    environment:
+      - BLOCKCHAIN_NETWORK=${BLOCKCHAIN_NETWORK:-ethereum}
+      - RPC_URL=${RPC_URL:-https://mainnet.infura.io/v3/YOUR_PROJECT_ID}
+      - DID_ENABLED=true
+      - SMART_CONTRACTS_ENABLED=true
+      - IPFS_ENABLED=true
+    volumes:
+      - web3-data:/data
+      - web3-keys:/keys
+    networks:
+      - a3mailer-network
+
+  # IPFS Node
+  ipfs:
+    image: ipfs/go-ipfs:latest
+    container_name: a3mailer-ipfs
+    restart: unless-stopped
+    ports:
+      - "4001:4001"   # P2P
+      - "5001:5001"   # API
+      - "8081:8080"   # Gateway
+    volumes:
+      - ipfs-data:/data/ipfs
+    networks:
+      - a3mailer-network
+
+  # Monitoring with Prometheus
   prometheus:
     image: prom/prometheus:latest
     container_name: a3mailer-prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    volumes:
-      - ./resources/docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
     networks:
       - a3mailer-network
-    restart: unless-stopped
-    profiles:
-      - monitoring
-
-  # Grafana for metrics visualization
+  # Grafana Dashboard
   grafana:
     image: grafana/grafana:latest
     container_name: a3mailer-grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./resources/docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./resources/docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
     ports:
       - "3000:3000"
-    networks:
-      - a3mailer-network
-    restart: unless-stopped
-    profiles:
-      - monitoring
-
-  # Jaeger for distributed tracing
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: a3mailer-jaeger
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # Jaeger collector HTTP
-      - "4317:4317"    # OTLP gRPC receiver
-      - "4318:4318"    # OTLP HTTP receiver
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
     networks:
       - a3mailer-network
-    restart: unless-stopped
-    profiles:
-      - monitoring
 
 volumes:
-  a3mailer_data:
+  a3mailer-data:
     driver: local
-  postgres_data:
+  a3mailer-config:
     driver: local
-  redis_data:
+  a3mailer-logs:
     driver: local
-  elasticsearch_data:
+  postgres-data:
     driver: local
-  prometheus_data:
+  redis-data:
     driver: local
-  grafana_data:
+  elasticsearch-data:
+    driver: local
+  ai-models:
+    driver: local
+  ai-data:
+    driver: local
+  web3-data:
+    driver: local
+  web3-keys:
+    driver: local
+  ipfs-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
     driver: local
 
 networks:

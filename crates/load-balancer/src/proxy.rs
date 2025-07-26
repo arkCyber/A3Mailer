@@ -67,7 +67,7 @@ impl ProxyService {
 
         // Record metrics
         let success = result.is_ok();
-        self.metrics.record_request_simple(success);
+        self.metrics.record_request(success);
 
         if !success {
             backend.record_failure().await;

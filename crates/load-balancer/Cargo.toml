@@ -31,7 +31,6 @@ http-body-util = "0.1"
 bytes = "1.0"
 futures = "0.3"
 pin-project = "1.0"
-async-trait = "0.1"
 
 # Load balancing algorithms
 consistent_hash = { version = "0.1", optional = true }

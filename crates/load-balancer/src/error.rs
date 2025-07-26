@@ -31,8 +31,4 @@ pub enum LoadBalancerError {
     /// Generic error
     #[error("Load balancer error: {0}")]
     Generic(String),
-
-    /// Internal error
-    #[error("Internal error: {0}")]
-    Internal(String),
 }

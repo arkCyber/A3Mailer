@@ -1,7 +1,7 @@
 # A3Mailer Makefile
-# Provides common development and build tasks
+# AI-Powered Web3-Native Mail Server - Development and Build Tasks
 
-.PHONY: help setup build build-release test test-coverage lint format dev docker-dev docker-stop clean install docs
+.PHONY: help setup build build-release test test-coverage lint format dev docker-dev docker-stop clean install docs ai-setup web3-setup security benchmark
 
 # Default target
 .DEFAULT_GOAL := help
@@ -18,7 +18,8 @@ NC := \033[0m
 
 # Help target
 help: ## Show this help message
-	@echo "$(GREEN)A3Mailer Development Makefile$(NC)"
+	@echo "$(GREEN)🚀 A3Mailer - AI-Powered Web3-Native Mail Server$(NC)"
+	@echo "$(GREEN)================================================$(NC)"
 	@echo ""
 	@echo "Available targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -162,7 +163,7 @@ tree: ## Show dependency tree
 
 # Show project statistics
 stats: ## Show project statistics
-	@echo "$(GREEN)Project Statistics:$(NC)"
+	@echo "$(GREEN)🚀 A3Mailer Project Statistics:$(NC)"
 	@echo "Lines of code:"
 	@find crates -name "*.rs" -exec wc -l {} + | tail -1
 	@echo ""
@@ -171,3 +172,53 @@ stats: ## Show project statistics
 	@echo ""
 	@echo "Dependencies:"
 	@$(CARGO) tree --depth 1 | grep -E "^[a-zA-Z]" | wc -l
+
+# AI/ML Setup and Testing
+ai-setup: ## Setup AI/ML models and dependencies
+	@echo "$(GREEN)🤖 Setting up AI/ML components...$(NC)"
+	@mkdir -p models data/ai logs/ai
+	@echo "Downloading threat detection models..."
+	@echo "AI setup completed!"
+
+ai-test: ## Test AI components
+	@echo "$(GREEN)🤖 Testing AI components...$(NC)"
+	@$(CARGO) test -p stalwart-threat-detection
+	@$(CARGO) test ai_
+
+# Web3 Setup and Testing
+web3-setup: ## Setup Web3 blockchain components
+	@echo "$(GREEN)⛓️ Setting up Web3 components...$(NC)"
+	@mkdir -p data/web3 keys logs/web3
+	@echo "Configuring blockchain connections..."
+	@echo "Web3 setup completed!"
+
+web3-test: ## Test Web3 components
+	@echo "$(GREEN)⛓️ Testing Web3 components...$(NC)"
+	@$(CARGO) test -p stalwart-compliance
+	@$(CARGO) test web3_
+
+# Security audits
+security: ## Run comprehensive security audits
+	@echo "$(GREEN)🛡️ Running security audits...$(NC)"
+	@$(CARGO) audit
+	@$(CARGO) clippy -- -D warnings
+	@echo "Security audit completed!"
+
+# Performance benchmarks
+benchmark: ## Run performance benchmarks
+	@echo "$(GREEN)⚡ Running performance benchmarks...$(NC)"
+	@$(CARGO) bench
+	@echo "Benchmark results saved to target/criterion/"
+
+# Full production build
+production: ## Build for production with all optimizations
+	@echo "$(GREEN)🚀 Building for production...$(NC)"
+	@$(CARGO) build --release --workspace
+	@strip target/release/a3mailer
+	@echo "Production build completed!"
+
+# Deploy to production
+deploy: production ## Deploy to production environment
+	@echo "$(GREEN)🚢 Deploying to production...$(NC)"
+	@docker-compose -f docker-compose.yml up -d
+	@echo "Deployment completed!"

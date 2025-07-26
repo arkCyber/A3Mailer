@@ -201,25 +201,10 @@ impl LoadBalancerService {
                 // Collect backend statistics
                 let backend_stats = backend_pool.get_statistics().await;
 
-                // Convert to the format expected by metrics
-                let backend_status_pairs: Vec<(Backend, BackendStatus)> = backend_stats
-                    .into_iter()
-                    .map(|stats| {
-                        let backend = Backend::new(
-                            stats.backend_id.clone(),
-                            "127.0.0.1".to_string(), // TODO: Get actual address from backend
-                            8080, // TODO: Get actual port from backend
-                            1, // TODO: Get actual weight from backend
-                        );
-                        let status = stats.status.clone();
-                        (backend, status)
-                    })
-                    .collect();
-
                 // Update metrics
                 {
                     let mut metrics_guard = metrics.write().await;
-                    metrics_guard.update_backend_stats(backend_status_pairs);
+                    metrics_guard.update_backend_stats(backend_stats);
                 }
             }
         });
@@ -229,35 +214,33 @@ impl LoadBalancerService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ServerConfig;
+    use crate::config::{ServerConfig, BackendConfig};
     use std::net::SocketAddr;
 
     #[tokio::test]
     async fn test_service_creation() {
         let config = LoadBalancerConfig {
-            enabled: true,
-            algorithm: "round_robin".to_string(),
-            health_check_interval: 30,
+            algorithm: algorithms::LoadBalancingAlgorithm::RoundRobin,
             backends: vec![
-                Backend::new(
-                    "backend1".to_string(),
-                    "127.0.0.1".to_string(),
-                    8001,
-                    1,
-                ),
+                BackendConfig {
+                    id: "backend1".to_string(),
+                    address: "127.0.0.1:8001".parse().unwrap(),
+                    weight: 1,
+                    max_connections: 100,
+                    enabled: true,
+                },
             ],
             server: ServerConfig {
-                listen_address: "127.0.0.1".to_string(),
-                listen_port: 8080,
+                bind_address: "127.0.0.1:8080".parse().unwrap(),
+                max_connections: 1000,
+                connection_timeout: std::time::Duration::from_secs(30),
+                request_timeout: std::time::Duration::from_secs(60),
+                enable_tls: false,
+                tls_config: None,
             },
-            health_check: HealthCheckConfig {
-                enabled: true,
-                interval_seconds: 30,
-                timeout_seconds: 5,
-                path: "/health".to_string(),
-                expected_status: 200,
-            },
+            health_check: health::HealthCheckConfig::default(),
             session_affinity: None,
+            metrics: metrics::MetricsConfig::default(),
         };
 
         let service = LoadBalancerService::new(config).await;
