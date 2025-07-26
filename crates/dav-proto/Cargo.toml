@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 trc = { path = "../trc" }
 hashify = "0.2.6"
-quick-xml = "0.37.2"
+quick-xml = "0.38.0"
 calcard = { version = "0.1.3", features = ["rkyv"] }
 mail-parser = { version = "0.11", features = ["full_encoding", "rkyv"] }
 hyper = "1.6.0"
