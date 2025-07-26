@@ -1,13 +1,13 @@
 [server]
-host = "localhost"
-smtp_port = 587
-imap_port = 143
-pop3_port = 110
+host = "127.0.0.1"
+smtp_port = 2525
+imap_port = 1143
+pop3_port = 1110
 jmap_port = 8080
-http_port = 8080
+http_port = 8081
 use_tls = false
 admin_user = "admin"
-admin_password = "password"
+admin_password = "changeme"
 
 [execution]
 concurrency = 5
