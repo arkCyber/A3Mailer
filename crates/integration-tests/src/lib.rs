@@ -1,12 +1,15 @@
 /*!
- * Stalwart Mail Server Integration Tests
+ * A3Mailer Integration Tests
  *
- * This crate provides comprehensive integration and stress testing capabilities
- * for the Stalwart Mail Server, including:
+ * Comprehensive integration and stress testing for A3Mailer - the AI-Powered
+ * Web3-Native Mail Server, including:
  *
  * - User authentication and session management
  * - SMTP, IMAP, POP3, and JMAP protocol testing
  * - Email sending, receiving, and storage
+ * - AI-powered threat detection and content analysis
+ * - Web3 DID authentication and blockchain integration
+ * - Smart contract automation and IPFS storage
  * - Bulk email operations and group messaging
  * - Concurrent user simulation
  * - Performance benchmarking and stress testing
@@ -14,7 +17,7 @@
  * - Database and storage testing
  * - Configuration and deployment testing
  *
- * Author: Stalwart Labs Ltd.
+ * Author: A3Mailer Team
  * Created: 2024-07-26
  * License: AGPL-3.0-only
  */
@@ -36,6 +39,9 @@ pub mod utils;
 pub mod config;
 pub mod metrics;
 pub mod security;
+pub mod ai_integration;
+pub mod web3_integration;
+pub mod performance;
 
 /// Test configuration for integration tests
 #[derive(Debug, Clone, Serialize, Deserialize)]
