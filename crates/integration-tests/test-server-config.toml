@@ -1,0 +1,50 @@
+[server]
+host = "localhost"
+smtp_port = 587
+imap_port = 143
+pop3_port = 110
+jmap_port = 8080
+http_port = 8080
+use_tls = false
+admin_user = "admin"
+admin_password = "password"
+
+[execution]
+concurrency = 5
+retry_attempts = 3
+
+[execution.max_duration]
+secs = 1800
+nanos = 0
+
+[execution.timeout]
+secs = 30
+nanos = 0
+
+[execution.retry_delay]
+secs = 1
+nanos = 0
+
+[users]
+count = 10
+domain = "test.local"
+default_password = "testpass123"
+quota = 104857600
+
+[email]
+bulk_count = 50
+max_size = 5242880
+include_attachments = false
+max_attachment_size = 1048576
+
+[performance]
+target_eps = 10.0
+max_connections = 50
+
+[performance.stress_duration]
+secs = 300
+nanos = 0
+
+[performance.ramp_up_duration]
+secs = 30
+nanos = 0

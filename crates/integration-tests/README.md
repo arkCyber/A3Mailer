@@ -1,6 +1,6 @@
-# Stalwart Mail Server Integration Tests
+# A3Mailer Integration Tests
 
-This crate provides comprehensive integration and stress testing capabilities for the Stalwart Mail Server. It includes a full suite of tests covering authentication, email protocols, performance, security, and real-world scenarios.
+This crate provides comprehensive integration and stress testing capabilities for the A3Mailer system. It includes a full suite of tests covering authentication, email protocols, performance, security, and real-world scenarios.
 
 ## Features
 
@@ -13,35 +13,85 @@ This crate provides comprehensive integration and stress testing capabilities fo
 - **Flexible Configuration**: Environment-specific configurations and templates
 - **Multiple Output Formats**: Text, JSON, CSV, and HTML reporting
 
+## Installation
+
+Build the A3Mailer integration testing tool:
+
+```bash
+cargo build -p stalwart-integration-tests --bin integration-test --release
+```
+
 ## Quick Start
+
+### Configuration Management
+
+1. **Generate a configuration template**:
+```bash
+./target/release/integration-test generate-config basic --output my-config.toml
+```
+
+2. **Validate the configuration**:
+```bash
+./target/release/integration-test validate-config my-config.toml
+```
 
 ### Running All Tests
 
 ```bash
-# Run all integration tests
-cargo run --bin integration-test all
+# Run all integration tests with configuration
+./target/release/integration-test --config my-config.toml all
 
-# Run all tests including stress and security tests
-cargo run --bin integration-test all --include-stress --include-security
+# Run all tests with verbose output
+./target/release/integration-test --config my-config.toml --verbose all
+
+# Dry run (validate configuration only)
+./target/release/integration-test --config my-config.toml --dry-run all
 ```
 
 ### Running Specific Test Suites
 
 ```bash
 # Authentication tests
-cargo run --bin integration-test auth
+./target/release/integration-test --config config.toml auth
 
 # Email communication tests
-cargo run --bin integration-test email --include-attachments --include-bulk
+./target/release/integration-test --config config.toml email
 
 # Stress tests
-cargo run --bin stress-test all
+./target/release/integration-test --config config.toml stress
 
 # Security tests
-cargo run --bin integration-test security --include-compliance --framework owasp
+./target/release/integration-test --config config.toml security
 
 # Scenario tests
-cargo run --bin integration-test scenarios --users 50
+./target/release/integration-test --config config.toml scenarios
+```
+
+### Configuration Templates
+
+The tool provides several pre-configured templates:
+
+- **basic**: Simple testing with minimal load
+- **stress**: High-load performance testing
+- **corporate**: Enterprise-level testing scenarios
+- **development**: Development environment testing
+
+Generate a template:
+```bash
+./target/release/integration-test generate-config [TEMPLATE] --output [FILE]
+```
+
+### Output Formats
+
+```bash
+# JSON output
+./target/release/integration-test --config config.toml --output json --output-file results.json all
+
+# CSV output
+./target/release/integration-test --config config.toml --output csv --output-file results.csv all
+
+# HTML report
+./target/release/integration-test --config config.toml --output html --output-file report.html all
 ```
 
 ## Test Suites
@@ -288,9 +338,9 @@ use stalwart_integration_tests::*;
 async fn test_my_feature() -> Result<()> {
     let config = TestConfig::default();
     let context = TestContext::new(config);
-    
+
     // Your test logic here
-    
+
     Ok(())
 }
 ```

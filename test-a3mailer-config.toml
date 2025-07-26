@@ -1,0 +1,51 @@
+# A3Mailer Test Configuration
+# Simple configuration for testing purposes
+
+[server.listener."smtp"]
+bind = ["127.0.0.1:2525"]
+protocol = "smtp"
+
+[server.listener."imap"]
+bind = ["127.0.0.1:1143"]
+protocol = "imap"
+
+[server.listener."pop3"]
+bind = ["127.0.0.1:1110"]
+protocol = "pop3"
+
+[server.listener."jmap"]
+bind = ["127.0.0.1:8080"]
+protocol = "http"
+
+[server.listener."management"]
+bind = ["127.0.0.1:8081"]
+protocol = "http"
+
+# Storage configuration - using rocksdb for testing
+[storage]
+data = "rocksdb"
+fts = "rocksdb"
+blob = "rocksdb"
+lookup = "rocksdb"
+directory = "internal"
+
+[store."rocksdb"]
+type = "rocksdb"
+path = "/tmp/a3mailer-data"
+compression = "lz4"
+
+[directory."internal"]
+type = "internal"
+store = "rocksdb"
+
+# Authentication
+[authentication.fallback-admin]
+user = "admin"
+secret = "changeme"
+
+# Logging
+[tracer."stdout"]
+type = "stdout"
+level = "info"
+ansi = false
+enable = true

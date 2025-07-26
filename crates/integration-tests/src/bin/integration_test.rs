@@ -2,7 +2,7 @@
  * Integration Test Binary
  *
  * This binary provides a comprehensive command-line interface for running
- * integration tests against the Stalwart Mail Server.
+ * integration tests against the A3Mailer system.
  *
  * Usage:
  *   cargo run --bin integration-test -- [OPTIONS] [COMMAND]
@@ -37,7 +37,7 @@ fn convert_error(e: Box<dyn std::error::Error + Send + Sync>) -> Box<dyn std::er
 /// Integration testing command-line interface
 #[derive(Parser)]
 #[command(name = "integration-test")]
-#[command(about = "Stalwart Mail Server Integration Testing Tool")]
+#[command(about = "A3Mailer Integration Testing Tool")]
 #[command(version = "1.0.0")]
 struct Cli {
     /// Configuration file path
@@ -217,13 +217,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(e) => return Err(convert_error(e)),
     }
 
-    // Initialize logging
+    // Initialize logging (only if not already initialized)
     let log_level = if cli.verbose { "debug" } else { "info" };
-    tracing_subscriber::fmt()
+    if let Err(_) = tracing_subscriber::fmt()
         .with_env_filter(log_level)
-        .init();
+        .try_init() {
+        // Tracing already initialized, continue
+    }
 
-    info!("Starting Stalwart Mail Server Integration Testing Tool");
+    info!("Starting A3Mailer Integration Testing Tool");
 
     // Handle special commands that don't require configuration
     match &cli.command {
