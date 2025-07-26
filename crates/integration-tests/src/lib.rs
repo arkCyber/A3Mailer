@@ -39,9 +39,7 @@ pub mod utils;
 pub mod config;
 pub mod metrics;
 pub mod security;
-pub mod ai_integration;
-pub mod web3_integration;
-pub mod performance;
+
 
 /// Test configuration for integration tests
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -283,7 +281,7 @@ pub struct EmailAttachment {
 }
 
 /// Test context for managing test execution
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TestContext {
     /// Test configuration
     pub config: TestConfig,
@@ -399,7 +397,7 @@ impl TestContext {
         let total_duration = self.start_time.elapsed();
         let average_duration = if total_tests > 0 {
             Duration::from_nanos(
-                results.iter().map(|r| r.duration.as_nanos()).sum::<u128>() / total_tests as u128
+                (results.iter().map(|r| r.duration.as_nanos()).sum::<u128>() / total_tests as u128) as u64
             )
         } else {
             Duration::ZERO

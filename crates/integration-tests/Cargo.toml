@@ -21,7 +21,6 @@ tower = "0.4"
 # Email protocols
 lettre = { version = "0.11", features = ["smtp-transport", "pool", "hostname", "builder"] }
 imap = "2.4"
-pop3 = "0.3"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -53,8 +52,7 @@ thiserror = "1.0"
 prometheus = "0.13"
 metrics = "0.21"
 
-# Database testing
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "sqlite", "mysql"] }
+
 
 # TLS and security
 rustls = "0.21"
@@ -67,9 +65,10 @@ config = "0.13"
 common = { path = "../common" }
 directory = { path = "../directory" }
 jmap = { path = "../jmap" }
-imap-proto = { path = "../imap" }
+imap_proto = { path = "../imap-proto" }
 smtp = { path = "../smtp" }
-stalwart-threat-detection = { path = "../threat-detection" }
+utils = { path = "../utils" }
+trc = { path = "../trc" }
 
 [dev-dependencies]
 tempfile = "3.0"
@@ -83,17 +82,7 @@ path = "src/bin/stress_test.rs"
 name = "integration-test"
 path = "src/bin/integration_test.rs"
 
-[[bench]]
-name = "email_throughput"
-harness = false
 
-[[bench]]
-name = "concurrent_users"
-harness = false
-
-[[bench]]
-name = "protocol_performance"
-harness = false
 
 [features]
 default = ["full-tests"]

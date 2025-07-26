@@ -1,0 +1,43 @@
+# Development Configuration
+# This configuration is optimized for development and debugging
+
+[server]
+# Local development server settings
+host = "127.0.0.1"
+smtp_port = 2525
+imap_port = 1143
+pop3_port = 1110
+jmap_port = 8080
+http_port = 8080
+use_tls = false
+admin_user = "dev"
+admin_password = "dev"
+
+[execution]
+# Quick development testing
+max_duration = 600   # 10 minutes in seconds
+concurrency = 2
+timeout = 15         # 15 seconds
+retry_attempts = 1
+retry_delay = 1      # 1 second
+
+[users]
+# Small user set for development
+count = 5
+domain = "dev.local"
+default_password = "dev123"
+quota = 10485760     # 10MB in bytes
+
+[email]
+# Lightweight email testing
+bulk_count = 10
+max_size = 1048576   # 1MB in bytes
+include_attachments = false
+max_attachment_size = 524288  # 512KB in bytes
+
+[performance]
+# Low-intensity performance testing
+target_eps = 1.0     # emails per second
+max_connections = 10
+stress_duration = 60      # 1 minute in seconds
+ramp_up_duration = 10     # 10 seconds

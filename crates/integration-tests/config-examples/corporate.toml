@@ -1,0 +1,43 @@
+# Corporate Environment Configuration
+# This configuration simulates a corporate email environment
+
+[server]
+# Production-like server settings
+host = "mail.company.com"
+smtp_port = 587
+imap_port = 993
+pop3_port = 995
+jmap_port = 443
+http_port = 443
+use_tls = true
+admin_user = "admin"
+admin_password = "SecurePassword123!"
+
+[execution]
+# Corporate testing execution settings
+max_duration = 3600  # 1 hour in seconds
+concurrency = 50
+timeout = 45         # 45 seconds
+retry_attempts = 3
+retry_delay = 2      # 2 seconds
+
+[users]
+# Corporate user base
+count = 500
+domain = "company.com"
+default_password = "CorporatePass123!"
+quota = 2147483648   # 2GB in bytes
+
+[email]
+# Corporate email patterns
+bulk_count = 1000
+max_size = 52428800  # 50MB in bytes
+include_attachments = true
+max_attachment_size = 26214400  # 25MB in bytes
+
+[performance]
+# Corporate performance requirements
+target_eps = 100.0   # emails per second
+max_connections = 500
+stress_duration = 1800    # 30 minutes in seconds
+ramp_up_duration = 120    # 2 minutes in seconds

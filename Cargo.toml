@@ -42,6 +42,8 @@ members = [
     "crates/plugin-system",
     "crates/sdk-generator",
     "crates/api-gateway",
+    # Testing and quality assurance
+    "crates/integration-tests",
 ]
 
 [profile.dev]

@@ -1,0 +1,43 @@
+# Stress Testing Configuration
+# This configuration is designed for high-load stress testing
+
+[server]
+# Server connection settings
+host = "localhost"
+smtp_port = 587
+imap_port = 143
+pop3_port = 110
+jmap_port = 8080
+http_port = 8080
+use_tls = false
+admin_user = "admin"
+admin_password = "password"
+
+[execution]
+# Test execution settings for stress testing
+max_duration = 7200  # 2 hours in seconds
+concurrency = 100
+timeout = 60         # 60 seconds
+retry_attempts = 5
+retry_delay = 2      # 2 seconds
+
+[users]
+# Large number of users for stress testing
+count = 1000
+domain = "stress.test"
+default_password = "stresstest123"
+quota = 1073741824   # 1GB in bytes
+
+[email]
+# High-volume email testing configuration
+bulk_count = 10000
+max_size = 26214400  # 25MB in bytes
+include_attachments = true
+max_attachment_size = 10485760  # 10MB in bytes
+
+[performance]
+# High-performance testing settings
+target_eps = 1000.0  # emails per second
+max_connections = 2000
+stress_duration = 3600    # 1 hour in seconds
+ramp_up_duration = 300    # 5 minutes in seconds

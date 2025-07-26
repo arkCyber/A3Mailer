@@ -1,0 +1,43 @@
+# Basic Integration Test Configuration
+# This configuration is suitable for basic testing and development
+
+[server]
+# Server connection settings
+host = "localhost"
+smtp_port = 587
+imap_port = 143
+pop3_port = 110
+jmap_port = 8080
+http_port = 8080
+use_tls = false
+admin_user = "admin"
+admin_password = "password"
+
+[execution]
+# Test execution settings
+max_duration = 1800  # 30 minutes in seconds
+concurrency = 5
+timeout = 30         # 30 seconds
+retry_attempts = 3
+retry_delay = 1      # 1 second
+
+[users]
+# User configuration for testing
+count = 10
+domain = "test.local"
+default_password = "testpass123"
+quota = 104857600    # 100MB in bytes
+
+[email]
+# Email testing configuration
+bulk_count = 50
+max_size = 5242880   # 5MB in bytes
+include_attachments = false
+max_attachment_size = 1048576  # 1MB in bytes
+
+[performance]
+# Performance testing settings
+target_eps = 10.0    # emails per second
+max_connections = 50
+stress_duration = 300     # 5 minutes in seconds
+ramp_up_duration = 30     # 30 seconds
