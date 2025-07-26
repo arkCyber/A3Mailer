@@ -50,7 +50,7 @@ prometheus = { version = "0.14", default-features = false }
 imagesize = "0.14"
 sha1 = "0.10"
 sha2 = "0.10.6"
-md5 = "0.7.0"
+md5 = "0.8.0"
 whatlang = "0.16"
 idna = "1.0"
 decancer = "3.0.1"
