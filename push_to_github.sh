@@ -29,14 +29,15 @@ if [ -n "$(git status --porcelain)" ]; then
     echo "⚠️  Warning: There are uncommitted changes"
     echo "📝 Adding all changes..."
     git add .
-    
-    echo "💾 Creating commit..."
-    git commit -m "feat: Update A3Mailer enterprise modules
 
-- Enhanced all enterprise-grade modules with production-ready features
-- Fixed compilation issues and improved test coverage
-- Updated documentation and project branding
-- Ready for production deployment"
+    echo "💾 Creating commit..."
+    git commit -m "feat: Update A3Mailer AI & Web3 integration
+
+- Enhanced AI-powered threat detection and behavioral analysis
+- Integrated Web3 blockchain technology for decentralized identity
+- Added smart contract automation for compliance management
+- Updated documentation highlighting AI and Web3 features
+- Ready for next-generation email deployment"
 fi
 
 # Push to GitHub
@@ -62,10 +63,12 @@ fi
 echo ""
 echo "🎉 A3Mailer is now available on GitHub!"
 echo "📊 Project Statistics:"
-echo "   - 8 Enterprise-grade modules"
+echo "   - 🤖 AI-powered threat detection and analytics"
+echo "   - ⛓️ Web3 blockchain integration and DID support"
+echo "   - 8 Enterprise-grade modules with AI/Web3 features"
 echo "   - 38/38 tests passing (100%)"
 echo "   - Production-ready Rust backend"
-echo "   - Complete documentation"
+echo "   - Complete AI & Web3 documentation"
 echo ""
 echo "🔗 Next Steps:"
 echo "   1. Visit: https://github.com/arkCyber/A3Mailer"
