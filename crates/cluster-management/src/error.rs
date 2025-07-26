@@ -12,9 +12,25 @@ pub enum ClusterError {
     #[error("Configuration error: {0}")]
     Configuration(String),
 
+    /// Configuration error (alias for compatibility)
+    #[error("Config error: {0}")]
+    Config(String),
+
     /// Network error
     #[error("Network error: {0}")]
-    Network(#[from] std::io::Error),
+    Network(String),
+
+    /// IO error
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Health check error
+    #[error("Health check error: {0}")]
+    Health(String),
+
+    /// Leadership error
+    #[error("Not a leader")]
+    NotLeader,
 
     /// Generic error
     #[error("Cluster error: {0}")]

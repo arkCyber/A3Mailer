@@ -20,7 +20,9 @@ trc = { path = "../trc" }
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }
 tokio-util = { version = "0.7", features = ["full"] }
+tokio-stream = "0.1"
 futures = "0.3"
+async-trait = "0.1"
 
 # Networking
 hyper = { version = "1.0", features = ["full"] }
@@ -64,6 +66,8 @@ base64 = "0.22"
 
 # Network utilities
 local-ip-address = "0.6"
+gethostname = "0.4"
+num_cpus = "1.0"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -52,7 +52,7 @@ struct ClusterManagerInner {
     config: ClusterConfig,
     node_info: NodeInfo,
     cluster_state: ClusterStateManager,
-    service_discovery: Box<dyn ServiceDiscovery>,
+    service_discovery: DiscoveryBackend,
     health_monitor: HealthMonitor,
     leader_election: LeaderElection,
     consensus_engine: Option<ConsensusEngine>,
@@ -65,13 +65,13 @@ impl ClusterManager {
         info!("Initializing cluster manager");
 
         // Create node information
-        let node_info = NodeInfo::new(&config.node).await?;
+        let node_info = NodeInfo::new(&config.node_id).await?;
 
         // Create cluster state manager
         let cluster_state = ClusterStateManager::new(&config.state).await?;
 
         // Initialize service discovery
-        let service_discovery = discovery::create_backend(&config.discovery).await?;
+        let service_discovery = discovery::create_backend(&config).await?;
 
         // Create health monitor
         let health_monitor = HealthMonitor::new(&config.health).await?;
@@ -178,74 +178,92 @@ impl ClusterManager {
 
     /// Get current leader information
     pub async fn get_leader(&self) -> Option<NodeInfo> {
-        self.inner.leader_election.get_leader().await
+        if let Some(leader_id) = self.inner.leader_election.get_leader().await {
+            // Find the leader node in cluster state
+            let state = self.inner.cluster_state.get_state().await;
+            state.nodes.into_iter().find(|n| n.id == leader_id)
+        } else {
+            None
+        }
     }
 
     /// Get cluster metrics
     pub async fn get_metrics(&self) -> ClusterMetrics {
-        self.inner.metrics.read().await.clone()
+        (*self.inner.metrics.read().await).clone()
     }
 
     /// Add a new node to the cluster
     pub async fn add_node(&self, node: NodeInfo) -> Result<()> {
         info!("Adding node to cluster: {}", node.id);
-        
+
         // Register with service discovery
         self.inner.service_discovery.register_node(&node).await?;
-        
+
         // Update cluster state
         self.inner.cluster_state.add_node(node).await?;
-        
+
         Ok(())
     }
 
     /// Remove a node from the cluster
     pub async fn remove_node(&self, node_id: &Uuid) -> Result<bool> {
         info!("Removing node from cluster: {}", node_id);
-        
+
+        let node_id_str = node_id.to_string();
+
         // Deregister from service discovery
-        self.inner.service_discovery.deregister_node(node_id).await?;
-        
+        self.inner.service_discovery.deregister_node(&node_id_str).await?;
+
         // Update cluster state
-        let removed = self.inner.cluster_state.remove_node(node_id).await?;
-        
+        let removed = self.inner.cluster_state.remove_node(&node_id_str).await?;
+
         if removed {
             info!("Node removed successfully: {}", node_id);
         } else {
             warn!("Node not found for removal: {}", node_id);
         }
-        
+
         Ok(removed)
     }
 
     /// Get health status of all nodes
     pub async fn get_node_health(&self) -> Result<Vec<(NodeInfo, NodeHealth)>> {
-        self.inner.health_monitor.get_all_health().await
+        let health_map = self.inner.health_monitor.get_all_health().await;
+        let state = self.inner.cluster_state.get_state().await;
+
+        let mut result = Vec::new();
+        for node in state.nodes {
+            if let Some(health) = health_map.get(&node.id) {
+                result.push((node, health.clone()));
+            }
+        }
+
+        Ok(result)
     }
 
     /// Trigger cluster rebalancing
     pub async fn rebalance_cluster(&self) -> Result<()> {
         info!("Triggering cluster rebalancing");
-        
+
         if !self.is_leader().await {
             return Err(ClusterError::NotLeader);
         }
-        
+
         // TODO: Implement rebalancing logic
-        
+
         Ok(())
     }
 
     /// Propagate configuration to all nodes
     pub async fn propagate_config(&self, config_data: Vec<u8>) -> Result<()> {
         info!("Propagating configuration to cluster");
-        
+
         if !self.is_leader().await {
             return Err(ClusterError::NotLeader);
         }
-        
+
         // TODO: Implement configuration propagation
-        
+
         Ok(())
     }
 
@@ -253,10 +271,10 @@ impl ClusterManager {
     async fn start_background_tasks(&self) {
         // Start metrics collection
         self.start_metrics_collection().await;
-        
+
         // Start node discovery refresh
         self.start_discovery_refresh().await;
-        
+
         // Start cluster state sync
         self.start_state_sync().await;
     }
@@ -269,14 +287,14 @@ impl ClusterManager {
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Collect cluster statistics
                 let state = cluster_state.get_state().await;
                 let health_stats = health_monitor.get_statistics().await;
-                
+
                 // Update metrics
                 {
                     let mut metrics_guard = metrics.write().await;
@@ -295,10 +313,10 @@ impl ClusterManager {
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(refresh_interval);
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Discover nodes
                 match service_discovery.discover_nodes().await {
                     Ok(nodes) => {
@@ -322,10 +340,10 @@ impl ClusterManager {
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(sync_interval);
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Synchronize cluster state
                 if let Err(e) = cluster_state.sync_state().await {
                     error!("Cluster state sync failed: {}", e);
